@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const crypto = require('crypto');
-const { RouterOSClient } = require('routeros-client');
+const { RouterOSClient } = require('node-routeros');
 
 // ======================================================
 // ⚙️ جميع البيانات الخاصة بك مدمجة وجاهزة
