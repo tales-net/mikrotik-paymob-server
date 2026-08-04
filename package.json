@@ -9,7 +9,7 @@
     "express": "^4.18.2",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
-    "routeros-client": "^1.3.0",
+    "routeros-client": "^1.2.1",
     "node-telegram-bot-api": "^0.64.0"
   }
 }
