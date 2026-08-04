@@ -8,7 +8,7 @@ const { RouterOSClient } = require('routeros-client');
 // ⚙️ جميع البيانات الخاصة بك مدمجة وجاهزة
 // ======================================================
 const CONFIG = {
-  PORT: 3000,
+  PORT: process.env.PORT || 3000, // دعم البورت الديناميكي في Render
   
   // 1. بيانات الميكروتك
   MIKROTIK: {
@@ -22,9 +22,9 @@ const CONFIG = {
   PAYMOB: {
     API_KEY: 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2T0RneU5ERTNMQ0p1WVcxbElqb2lNVGM0TlRZeE5ESXdPQzQzTmpNMU1Ua2lmUS50Sm10SFlkdkYzVzlOYXJOcUk2YTBHTThvWWszUmN1OURBdFU3Q0tFeTB4R0JONnhOWmlLSW93N2xiRHlEanJzOTd5UjVnVjJMaDItME85ODJIYThuQQ==',
     HMAC_SECRET: '3EB1A996C1BBAFF41BAC83E5EDC6A725',
-    WALLET_INTEGRATION_ID: '5406863', // رقم تكامل المحافظ
-    VALU_INTEGRATION_ID: '5407062',   // رقم تكامل فاليو
-    SEVEN_INTEGRATION_ID: '5407052'    // رقم تكامل سفن
+    WALLET_INTEGRATION_ID: '5406863', 
+    VALU_INTEGRATION_ID: '5407062',   
+    SEVEN_INTEGRATION_ID: '5407052'    
   },
 
   // 3. بيانات بوت تليجرام
@@ -86,7 +86,7 @@ async function createMikrotikVoucher(amount, phone) {
   }
 }
 
-// 🧪 مسار للاختبار الفوري عبر المتصفح (http://localhost:3000/test-voucher)
+// 🧪 مسار للاختبار الفوري عبر المتصفح
 app.get('/test-voucher', async (req, res) => {
   console.log("⏳ جاري تجربة توليد كارت في User Manager...");
   const voucher = await createMikrotikVoucher(15, "01000000000");
