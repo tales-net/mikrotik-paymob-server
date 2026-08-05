@@ -43,7 +43,7 @@ app.get('/test-voucher', async (req, res) => {
   try {
     await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM.BOT_TOKEN}/sendMessage`, {
       chat_id: CONFIG.TELEGRAM.CHAT_ID,
-      text: `🧪 *اختبار السيرفر والتليجرام*\n----------------------------\n💰 *المبلغ:* 15 جنيه\n📞 *المحفظة:* \`01221695951\`\n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`,
+      text: `🧪 *اختبار السيرفر والتليجرام*\n----------------------------\n💰 *المبلغ:* 15 جنيه\n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`,
       parse_mode: 'Markdown'
     });
     res.json({ success: true, message: "تم توليد الكارت وتجربة التليجرام بنجاح", code, profile });
@@ -52,39 +52,48 @@ app.get('/test-voucher', async (req, res) => {
   }
 });
 
-// 3️⃣ مسار تجربة الدفع الحقيقي (إرسال طلب لمحفظتك 01221695951)
-app.get('/api/pay-test', async (req, res) => {
+// 3️⃣ مسار الدفع الديناميكي (يستقبل رقم المحفظة والمبلغ من الرابط ويحول لصفحة الدفع)
+app.get('/api/pay', async (req, res) => {
+  const phone = req.query.phone; // مثال: ?phone=01221695951
+  const amount = req.query.amount || '5'; // افتراضي 5 جنيه لو لم يتم تحديده
+
+  if (!phone) {
+    return res.status(400).json({ success: false, error: "الرجاء إدخال رقم المحفظة، مثال: /api/pay?phone=01012345678&amount=5" });
+  }
+
   try {
+    const amountCents = (parseFloat(amount) * 100).toString();
+
     // أ. طلب توكن مصادقة من Paymob
     const authRes = await axios.post('https://accept.paymob.com/api/auth/tokens', {
       api_key: CONFIG.PAYMOB.API_KEY
     });
     const token = authRes.data.token;
 
-    // ب. تسجيل طلب (Order) بقيمة 5 جنيه (500 قرش)
+    // ب. تسجيل طلب (Order)
     const orderRes = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
       auth_token: token,
       delivery_needed: false,
-      amount_cents: "500",
+      amount_cents: amountCents,
       currency: "EGP",
       items: []
     });
     const orderId = orderRes.data.id;
 
-    // ج. طلب مفتاح دفع (Payment Key) للمحفظة
+    // ج. طلب مفتاح دفع (Payment Key)
     const keyRes = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
       auth_token: token,
-      amount_cents: "500",
+      amount_cents: amountCents,
       expiration: 3600,
       order_id: orderId,
       billing_data: {
         apartment: "NA",
-        email: "test@tales.com",
+        email: "customer@tales.com",
         floor: "NA",
-        first_name: "Mohamed",
+        first_name: "Customer",
         street: "NA",
         building: "NA",
-        phone_number: "01221695951",
+        phone_number: phone,
         shipping_method: "NA",
         postal_code: "NA",
         city: "Cairo",
@@ -97,20 +106,21 @@ app.get('/api/pay-test', async (req, res) => {
     });
     const paymentKey = keyRes.data.token;
 
-    // د. طلب الدفع بالمحفظة لرقمك الحقيقي
+    // د. طلب الدفع بالمحفظة للرقم المدخل
     const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
       source: {
-        identifier: "01221695951", // رقم محفظتك الحقيقي
+        identifier: phone,
         subtype: "WALLET"
       },
       payment_token: paymentKey
     });
 
-    res.json({
-      success: true,
-      redirect_url: walletRes.data.redirect_url || walletRes.data,
-      message: "تم إرسال طلب الدفع لمحفظتك بنجاح"
-    });
+    const payUrl = walletRes.data.redirect_url || walletRes.data.iframe_redirection_url;
+    if (payUrl) {
+      return res.redirect(payUrl);
+    } else {
+      res.json({ success: true, data: walletRes.data });
+    }
 
   } catch (err) {
     res.status(500).json({ success: false, error: err.response?.data || err.message });
