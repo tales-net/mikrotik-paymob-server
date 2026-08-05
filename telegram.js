@@ -1,64 +1,39 @@
-const axios = require('axios');
-const { getProfile } = require('./profiles');
-const { generateVoucher } = require('./voucher');
-require('dotenv').config();
+// telegram.js
+const axios = require("axios");
+const { getProfile } = require("./profiles");
 
-async function sendTelegramMessage(text) {
-  await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    chat_id: process.env.TELEGRAM_CHAT_ID,
-    text: text,
-    parse_mode: 'Markdown'
-  });
+// دالة إرسال رسالة لتليجرام بعد الدفع
+async function sendPaymentMessage({ amount, phone, transactionId, orderId, time, integrationId }) {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    // تحديد اسم البروفايل بناءً على المبلغ
+    const profileName = getProfile(parseInt(amount));
+
+    // تجهيز الرسالة
+    const message = `
+✅ دفع ناجح
+📱 رقم العميل: ${phone}
+💰 المبلغ: ${amount} جنيه
+👤 البروفايل: ${profileName}
+🆔 رقم العملية: ${transactionId}
+📦 رقم الطلب: ${orderId}
+⏰ الوقت: ${time}
+🔗 Integration ID: ${integrationId}
+    `;
+
+    // إرسال الرسالة باستخدام Telegram API
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text: message,
+      parse_mode: "HTML"
+    });
+
+    console.log("✅ رسالة الدفع اتبعت لتليجرام بنجاح");
+  } catch (err) {
+    console.error("❌ خطأ في إرسال رسالة لتليجرام:", err.message);
+  }
 }
 
-async function sendTestVoucher() {
-  const code = generateVoucher();
-  const message = `🔔 رسالة اختبار من السيرفر
-━━━━━━━━━━━━━━
-🎫 كود تجريبي: ${code}
-🕒 الوقت: ${new Date().toLocaleString('ar-EG', { hour12: false })}
-━━━━━━━━━━━━━━`;
-  await sendTelegramMessage(message);
-}
-
-async function sendPaymentMessage(obj, methodName) {
-  const amount = (obj.amount_cents / 100).toFixed(0);
-  const phone = obj.order?.billing_data?.phone_number || "غير محدد";
-  const code = generateVoucher();
-  const profile = getProfile(parseInt(amount));
-
-  const transactionId = obj.id || "غير متوفر";
-  const orderId = obj.order?.merchant_order_id || `TALES-${obj.order?.id}`;
-  const time = new Date().toLocaleString('ar-EG', { hour12: false });
-
-  const message = `✅ تم الدفع بنجاح
-━━━━━━━━━━━━━━
-💳 رقم العملية
-${transactionId}
-
-📦 الباقة
-${profile}
-
-💰 المبلغ
-${amount} جنيه
-
-📱 المحفظة
-${phone}
-
-🆔 Order
-${orderId}
-
-🎫 الكارت
-${code}
-
-💳 وسيلة الدفع
-${methodName}
-
-🕒 الوقت
-${time}
-━━━━━━━━━━━━━━`;
-
-  await sendTelegramMessage(message);
-}
-
-module.exports = { sendTelegramMessage, sendTestVoucher, sendPaymentMessage };
+module.exports = { sendPaymentMessage };
