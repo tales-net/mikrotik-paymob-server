@@ -20,10 +20,9 @@ async function createPaymobPayment(phone, amount, method) {
       source: { identifier: phone, subtype: "WALLET" },
       payment_token: paymentKey
     });
-
     return { type: 'redirect', url: walletRes.data.redirection_url };
   } else {
-    const iframeId = process.env.PAYMOB_IFRAME_ID || "ضع_رقم_الفريم_هنا";
+    const iframeId = process.env.PAYMOB_IFRAME_ID;
     const htmlPage = getCheckoutPage(paymentKey, iframeId);
     return { type: 'html', content: htmlPage };
   }
