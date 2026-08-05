@@ -1,51 +1,28 @@
-// telegram.js
 const axios = require("axios");
-const { getProfile } = require("./profiles");
 
-// خريطة معرفات التكامل إلى أسماء الخدمات
-const integrationNames = {
-  [process.env.WALLET_INTEGRATION_ID]: "محفظة",
-  [process.env.CARD_INTEGRATION_ID]: "كارت",
-  [process.env.AMAN_INTEGRATION_ID]: "أمان",
-  [process.env.VALU_INTEGRATION_ID]: "فاليو",
-  [process.env.SEVEN_INTEGRATION_ID]: "سفين"
-};
+async function sendTelegramMessage(obj, success) {
+  const amount = (obj.amount_cents / 100).toFixed(0);
+  const phone = obj.order?.billing_data?.phone_number || "غير محدد";
+  const method = obj.payment_method?.type || "غير معروف";
+  const transactionId = obj.id || "غير متوفر";
+  const orderId = obj.order?.merchant_order_id || `TALES-${obj.order?.id}`;
+  const time = new Date().toLocaleString('ar-EG', { hour12: false });
 
-async function sendPaymentMessage({ amount, phone, transactionId, orderId, time, integrationId }) {
-  try {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-
-    const profileName = getProfile(parseInt(amount));
-
-    // تحديد اسم الخدمة من معرف التكامل
-    const serviceName = integrationNames[integrationId] || `Integration ${integrationId}`;
-
-    // لو فيه رقم محفظة أو بيانات بطاقة
-    let clientInfo = phone && phone !== "غير محدد" ? phone : "لم يتم تحديد";
-    
-    // تجهيز الرسالة
-    const message = `
-✅ دفع ناجح
-📱 بيانات العميل: ${clientInfo}
+  const message = `${success ? "✅ دفع ناجح" : "❌ دفع فاشل"}
+━━━━━━━━━━━━━━
+💳 رقم العملية: ${transactionId}
+🆔 رقم الطلب: ${orderId}
 💰 المبلغ: ${amount} جنيه
-👤 البروفايل: ${profileName}
-🆔 رقم العملية: ${transactionId}
-🎫 رقم الكارت/الطلب: ${orderId}
+📱 العميل: ${phone}
+💳 الوسيلة: ${method}
 ⏰ الوقت: ${time}
-🔗 طريقة الدفع: ${serviceName}
-    `;
+━━━━━━━━━━━━━━`;
 
-    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      chat_id: chatId,
-      text: message,
-      parse_mode: "HTML"
-    });
-
-    console.log("✅ رسالة الدفع اتبعت لتليجرام بنجاح");
-  } catch (err) {
-    console.error("❌ خطأ في إرسال رسالة لتليجرام:", err.message);
-  }
+  await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    chat_id: process.env.TELEGRAM_CHAT_ID,
+    text: message,
+    parse_mode: 'Markdown'
+  });
 }
 
-module.exports = { sendPaymentMessage };
+module.exports = { sendTelegramMessage };
