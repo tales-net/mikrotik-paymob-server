@@ -8,26 +8,16 @@
     body {
       font-family: "Cairo", sans-serif;
       background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      margin: 0; padding: 0;
+      display: flex; justify-content: center; align-items: center;
       min-height: 100vh;
     }
     .container {
-      width: 100%;
-      max-width: 420px;
-      background: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      width: 100%; max-width: 420px;
+      background: #fff; padding: 30px;
+      border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2);
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #2c3e50;
-    }
+    h2 { text-align: center; margin-bottom: 25px; color: #2c3e50; }
     .form-group { margin-bottom: 18px; }
     label { display: block; margin-bottom: 6px; font-weight: bold; color: #34495e; }
     input, select {
@@ -41,27 +31,46 @@
     }
     button:hover { background: #219150; }
     .note { font-size: 13px; color: #7f8c8d; text-align: center; margin-top: 15px; }
-    .logos { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
-    .logos img { height: 35px; object-fit: contain; }
+    .alert { font-size: 14px; color: #e74c3c; text-align: center; margin-bottom: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>💳 ادفع الآن</h2>
+
+    <!-- تنبيه للمستخدم -->
+    <div class="alert">
+      ⚠️ عند اختيار الدفع بالكارت، سيتم إدخال بيانات البطاقة داخل بوابة Paymob الرسمية (IFrame) بعد الضغط على "ادفع الآن".  
+      لا تدخل بيانات البطاقة هنا في النموذج، هذه الحقول للعرض فقط.
+    </div>
+
     <form id="paymentForm">
-      <div class="form-group">
-        <label>رقم المحفظة / البطاقة</label>
-        <input type="text" name="phone" required>
+      <!-- محفظة -->
+      <div class="form-group wallet-only">
+        <label>رقم المحفظة</label>
+        <input type="text" name="phone" placeholder="01234567890">
       </div>
 
-      <div class="form-group">
-        <label>المبلغ</label>
-        <input type="number" name="amount" required>
+      <!-- كارت (للتوضيح فقط) -->
+      <div class="form-group card-only" style="display:none;">
+        <label>رقم البطاقة (سيتم إدخاله في IFrame)</label>
+        <input type="text" disabled placeholder="**** **** **** ****">
       </div>
 
+      <div class="form-group card-only" style="display:none;">
+        <label>تاريخ الانتهاء (MM/YY)</label>
+        <input type="text" disabled placeholder="MM/YY">
+      </div>
+
+      <div class="form-group card-only" style="display:none;">
+        <label>رمز CVV</label>
+        <input type="text" disabled placeholder="***">
+      </div>
+
+      <!-- طريقة الدفع -->
       <div class="form-group">
         <label>طريقة الدفع</label>
-        <select name="method">
+        <select name="method" id="method">
           <option value="wallet">محفظة</option>
           <option value="card">كارت</option>
           <option value="valu">ValU</option>
@@ -70,19 +79,33 @@
         </select>
       </div>
 
+      <!-- المبلغ -->
+      <div class="form-group">
+        <label>المبلغ</label>
+        <input type="number" name="amount" min="1" required>
+      </div>
+
       <button type="submit">✅ ادفع الآن</button>
     </form>
-    <p class="note">⚠️ بياناتك تُستخدم فقط لإتمام عملية الدفع عبر Paymob</p>
 
-    <div class="logos">
-      <img src="https://seeklogo.com/images/P/paymob-logo-9E1E7C9F6D-seeklogo.com.png" alt="Paymob">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Central_Bank_of_Egypt_logo.png" alt="البنك المركزي المصري">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard">
-    </div>
+    <p class="note">⚠️ بياناتك تُستخدم فقط لإتمام عملية الدفع عبر Paymob</p>
   </div>
 
   <script>
+    const methodSelect = document.getElementById("method");
+    const walletFields = document.querySelectorAll(".wallet-only");
+    const cardFields = document.querySelectorAll(".card-only");
+
+    methodSelect.addEventListener("change", () => {
+      if (methodSelect.value === "wallet") {
+        walletFields.forEach(el => el.style.display = "block");
+        cardFields.forEach(el => el.style.display = "none");
+      } else {
+        walletFields.forEach(el => el.style.display = "none");
+        cardFields.forEach(el => el.style.display = "block");
+      }
+    });
+
     document.getElementById("paymentForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(e.target).entries());
@@ -96,11 +119,11 @@
       try {
         const result = await res.json();
         if (result.payment_url) {
-          window.location.href = result.payment_url; // تحويل لصفحة Paymob
+          window.location.href = result.payment_url;
         }
       } catch {
         const html = await res.text();
-        document.body.innerHTML = html; // عرض IFrame مباشرة
+        document.body.innerHTML = html;
       }
     });
   </script>
