@@ -19,8 +19,8 @@ app.get("/", (req, res) => {
 // API الدفع
 app.post("/api/pay", async (req, res) => {
   try {
-    const { phone, amount, method, account, expiry, cvv } = req.body;
-    const result = await createPaymobPayment(phone || account, amount, method);
+    const { phone, amount, method } = req.body;
+    const result = await createPaymobPayment(phone, amount, method);
 
     if (result.type === "redirect") {
       res.json({ payment_url: result.url });
@@ -31,6 +31,31 @@ app.post("/api/pay", async (req, res) => {
     console.error("❌ خطأ في الدفع:", err.message);
     res.status(500).send("Error in payment");
   }
+});
+
+// صفحات نجاح وفشل
+app.get("/success", (req, res) => {
+  res.send(`
+    <html lang="ar">
+      <head><meta charset="UTF-8"><title>تم الدفع</title></head>
+      <body style="font-family:Cairo; text-align:center; padding:50px;">
+        <h1 style="color:#27ae60;">✅ تم الدفع بنجاح</h1>
+        <p>شكراً لاستخدامك خدمة الدفع عبر Paymob</p>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/fail", (req, res) => {
+  res.send(`
+    <html lang="ar">
+      <head><meta charset="UTF-8"><title>فشل الدفع</title></head>
+      <body style="font-family:Cairo; text-align:center; padding:50px;">
+        <h1 style="color:#e74c3c;">❌ فشل الدفع</h1>
+        <p>حدثت مشكلة أثناء عملية الدفع، حاول مرة أخرى.</p>
+      </body>
+    </html>
+  `);
 });
 
 // Webhook من Paymob
