@@ -8,7 +8,7 @@ async function sendTelegramMessage(obj, success) {
   const orderId = obj.order?.merchant_order_id || `TALES-${obj.order?.id}`;
   const time = new Date().toLocaleString('ar-EG', { hour12: false });
 
-  // استخراج تفاصيل البطاقة أو المحفظة
+  // تفاصيل البطاقة أو المحفظة
   let details = "";
   if (method.toLowerCase().includes("card")) {
     const last4 = obj.payment_method?.masked_pan?.slice(-4) || "****";
