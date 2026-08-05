@@ -7,11 +7,9 @@ router.post("/webhook", async (req, res) => {
     const obj = req.body.obj;
 
     if (obj.success) {
-      // ✅ دفع ناجح
       await sendTelegramMessage(obj, true);
       console.log("✅ دفع ناجح:", obj.id);
     } else {
-      // ❌ دفع فاشل
       await sendTelegramMessage(obj, false);
       console.log("❌ دفع فاشل:", obj.id);
     }
