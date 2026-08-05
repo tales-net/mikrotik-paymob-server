@@ -21,7 +21,7 @@ async function createPaymobPayment(phone, amount, method) {
       payment_token: paymentKey
     });
 
-    return { type: 'redirect', url: walletRes.data.redirection_url || walletRes.data.redirect_url };
+    return { type: 'redirect', url: walletRes.data.redirection_url };
   } else {
     const iframeId = process.env.PAYMOB_IFRAME_ID || "ضع_رقم_الفريم_هنا";
     const htmlPage = getCheckoutPage(paymentKey, iframeId);
