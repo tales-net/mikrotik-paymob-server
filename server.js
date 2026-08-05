@@ -111,5 +111,68 @@ app.post('/paymob-webhook', async (req, res) => {
     res.status(500).send("Error");
   }
 });
+// مسار تجريبي عبر المتصفح لإنشاء طلب دفع فوري
+app.get('/api/pay-test', async (req, res) => {
+  try {
+    // 1. طلب توكن مصادقة من Paymob
+    const authRes = await axios.post('https://accept.paymob.com/api/auth/tokens', {
+      api_key: CONFIG.PAYMOB.API_KEY
+    });
+    const token = authRes.data.token;
 
+    // 2. تسجيل طلب (Order) بقيمة 5 جنيه (500 قرش)
+    const orderRes = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
+      auth_token: token,
+      delivery_needed: false,
+      amount_cents: "500",
+      currency: "EGP",
+      items: []
+    });
+    const orderId = orderRes.data.id;
+
+    // 3. طلب مفتاح دفع (Payment Key) للمحفظة
+    const keyRes = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
+      auth_token: token,
+      amount_cents: "500",
+      expiration: 3600,
+      order_id: orderId,
+      billing_data: {
+        apartment: "NA",
+        email: "test@tales.com",
+        floor: "NA",
+        first_name: "Test",
+        street: "NA",
+        building: "NA",
+        phone_number: "01012345678",
+        shipping_method: "NA",
+        postal_code: "NA",
+        city: "Cairo",
+        country: "EG",
+        last_name: "User",
+        state: "Cairo"
+      },
+      currency: "EGP",
+      integration_id: CONFIG.PAYMOB.WALLET_INTEGRATION_ID
+    });
+    const paymentKey = keyRes.data.token;
+
+    // 4. طلب رابط الدفع بالمحفظة (Mobile Wallet Request)
+    const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
+      source: {
+        identifier: "01010101010", // رقم محفظة تجريبي أو حقيقي
+        subtype: "WALLET"
+      },
+      payment_token: paymentKey
+    });
+
+    res.json({
+      success: true,
+      redirect_url: walletRes.data.redirect_url || walletRes.data,
+      message: "تم إنشاء طلب الدفع بنجاح"
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.response?.data || err.message });
+  }
+});
 app.listen(CONFIG.PORT, () => console.log(`🚀 Server on port ${CONFIG.PORT}`));
