@@ -1,35 +1,31 @@
-// server.js
 const express = require("express");
 const bodyParser = require("body-parser");
 require("dotenv").config();
 
-const { createPaymobPayment } = require("./pay"); // دالة الدفع
-const webhookRouter = require("./webhook");       // استقبال إشعارات Paymob
+const { createPaymobPayment } = require("./pay");
+const webhookRouter = require("./webhook");
 
 const app = express();
 const PORT = process.env.PORT || 3333;
 
-// Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// ✅ صفحة الهوتسبوت (واجهة دفع أنيقة)
+// صفحة الهوتسبوت
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html"); // صفحة الدفع اللي كتبناها
+  res.sendFile(__dirname + "/public/index.html");
 });
 
-// ✅ API لبدء الدفع
+// API الدفع
 app.post("/api/pay", async (req, res) => {
   try {
     const { phone, amount, method, account, expiry, cvv } = req.body;
-
-    // استدعاء دالة الدفع
     const result = await createPaymobPayment(phone || account, amount, method);
 
     if (result.type === "redirect") {
       res.json({ payment_url: result.url });
     } else {
-      res.send(result.content); // صفحة HTML فيها IFrame
+      res.send(result.content);
     }
   } catch (err) {
     console.error("❌ خطأ في الدفع:", err.message);
@@ -37,10 +33,9 @@ app.post("/api/pay", async (req, res) => {
   }
 });
 
-// ✅ Webhook من Paymob
+// Webhook من Paymob
 app.use("/", webhookRouter);
 
-// ✅ تشغيل السيرفر
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
