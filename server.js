@@ -1,51 +1,46 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+// server.js
+const express = require("express");
+const bodyParser = require("body-parser");
+require("dotenv").config();
 
-const { createPaymobPayment } = require('./pay');
-const webhookRoutes = require('./webhook');
-const { sendTestVoucher } = require('./telegram');
+const { createPaymobPayment } = require("./pay"); // دالة الدفع
+const webhookRouter = require("./webhook");       // استقبال إشعارات Paymob
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+const PORT = process.env.PORT || 3333;
 
-// الصفحة الرئيسية
-app.get('/', (req, res) => {
-  res.send('🚀 Mikrotik-Paymob Server is Live & Active!');
+// Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// ✅ صفحة الهوتسبوت (واجهة دفع أنيقة)
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/public/index.html"); // صفحة الدفع اللي كتبناها
 });
 
-// اختبار التليجرام
-app.get('/test-voucher', async (req, res) => {
+// ✅ API لبدء الدفع
+app.post("/api/pay", async (req, res) => {
   try {
-    await sendTestVoucher();
-    res.json({ success: true, message: "تم إرسال رسالة الاختبار للتليجرام بنجاح" });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+    const { phone, amount, method, account, expiry, cvv } = req.body;
 
-// الدفع
-app.get('/api/pay', async (req, res) => {
-  const { phone, amount, method } = req.query;
-  if (!phone || !amount) {
-    return res.json({ success: false, error: "الرجاء إدخال رقم المحفظة والمبلغ، مثال: /api/pay?phone=01012345678&amount=30&method=wallet" });
-  }
+    // استدعاء دالة الدفع
+    const result = await createPaymobPayment(phone || account, amount, method);
 
-  try {
-    const result = await createPaymobPayment(phone, amount, method);
-    if (result.type === 'redirect') {
-      res.redirect(result.url);
+    if (result.type === "redirect") {
+      res.json({ payment_url: result.url });
     } else {
-      res.send(result.content);
+      res.send(result.content); // صفحة HTML فيها IFrame
     }
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("❌ خطأ في الدفع:", err.message);
+    res.status(500).send("Error in payment");
   }
 });
 
-// Webhook
-app.use('/', webhookRoutes);
+// ✅ Webhook من Paymob
+app.use("/", webhookRouter);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ✅ تشغيل السيرفر
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
