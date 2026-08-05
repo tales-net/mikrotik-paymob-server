@@ -18,42 +18,57 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// الصفحة الرئيسية
+function getProfile(amount) {
+  const price = parseFloat(amount);
+  if (price === 5)   return "Bronze (البرونزي)";
+  if (price === 15)  return "Silver (الفضي)";
+  if (price === 30)  return "Gold (الذهبي)";
+  if (price === 50)  return "Platinum (البلاتينيوم)";
+  if (price === 100) return "Diamond (الماس)";
+  return "Bronze (البرونزي)";
+}
+
+// 1️⃣ الصفحة الرئيسية للتأكد أن السيرفر يعمل
 app.get('/', (req, res) => {
   res.send('🚀 Mikrotik-Paymob Server is Live & Active!');
 });
 
-// مسار الاختبار السريع للتليجرام
+// 2️⃣ مسار الاختبار السريع (توليد كارت وهمي وتجربة التليجرام)
 app.get('/test-voucher', async (req, res) => {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const profile = getProfile(15);
+  
   try {
     await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM.BOT_TOKEN}/sendMessage`, {
       chat_id: CONFIG.TELEGRAM.CHAT_ID,
-      text: `🧪 *اختبار السيرفر ناجح 100%*`,
+      text: `🧪 *اختبار السيرفر والتليجرام*\n----------------------------\n💰 *المبلغ:* 15 جنيه\n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`,
       parse_mode: 'Markdown'
     });
-    res.json({ success: true, message: "تم إرسال رسالة الاختبار للتليجرام بنجاح" });
+    res.json({ success: true, message: "تم توليد الكارت وتجربة التليجرام بنجاح", code, profile });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// مسار الدفع
+// 3️⃣ مسار الدفع الديناميكي (يستقبل رقم المحفظة والمبلغ من الرابط ويحول لصفحة الدفع)
 app.get('/api/pay', async (req, res) => {
-  const phone = req.query.phone;
-  const amount = req.query.amount || '5';
+  const phone = req.query.phone; // مثال: ?phone=01221695951
+  const amount = req.query.amount || '5'; // افتراضي 5 جنيه لو لم يتم تحديده
 
   if (!phone) {
-    return res.status(400).json({ success: false, error: "الرجاء إدخال رقم المحفظة" });
+    return res.status(400).json({ success: false, error: "الرجاء إدخال رقم المحفظة، مثال: /api/pay?phone=01012345678&amount=5" });
   }
 
   try {
     const amountCents = (parseFloat(amount) * 100).toString();
 
+    // أ. طلب توكن مصادقة من Paymob
     const authRes = await axios.post('https://accept.paymob.com/api/auth/tokens', {
       api_key: CONFIG.PAYMOB.API_KEY
     });
     const token = authRes.data.token;
 
+    // ب. تسجيل طلب (Order)
     const orderRes = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
       auth_token: token,
       delivery_needed: false,
@@ -63,24 +78,38 @@ app.get('/api/pay', async (req, res) => {
     });
     const orderId = orderRes.data.id;
 
+    // ج. طلب مفتاح دفع (Payment Key)
     const keyRes = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
       auth_token: token,
       amount_cents: amountCents,
       expiration: 3600,
       order_id: orderId,
       billing_data: {
-        apartment: "NA", email: "customer@tales.com", floor: "NA",
-        first_name: "Customer", street: "NA", building: "NA",
-        phone_number: phone, shipping_method: "NA", postal_code: "NA",
-        city: "Cairo", country: "EG", last_name: "User", state: "Cairo"
+        apartment: "NA",
+        email: "customer@tales.com",
+        floor: "NA",
+        first_name: "Customer",
+        street: "NA",
+        building: "NA",
+        phone_number: phone,
+        shipping_method: "NA",
+        postal_code: "NA",
+        city: "Cairo",
+        country: "EG",
+        last_name: "User",
+        state: "Cairo"
       },
       currency: "EGP",
       integration_id: CONFIG.PAYMOB.WALLET_INTEGRATION_ID
     });
     const paymentKey = keyRes.data.token;
 
+    // د. طلب الدفع بالمحفظة للرقم المدخل
     const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
-      source: { identifier: phone, subtype: "WALLET" },
+      source: {
+        identifier: phone,
+        subtype: "WALLET"
+      },
       payment_token: paymentKey
     });
 
@@ -96,26 +125,25 @@ app.get('/api/pay', async (req, res) => {
   }
 });
 
-// استقبال إشعارات الدفع (Webhook)
+// 4️⃣ استقبال إشعارات الدفع من Paymob (Webhook) وتوليد الكارت وإرساله للتليجرام فوراً
 app.post('/paymob-webhook', async (req, res) => {
   try {
     const data = req.body;
-    const obj = data.obj || data;
+    const obj = data.obj;
 
-    if (obj.success === true || obj.success === "true") {
-      const amountCents = obj.amount_cents || (obj.order && obj.order.amount_cents) || 500;
-      const amount = (amountCents / 100).toFixed(2);
+    if (!obj) return res.status(400).send("Bad Request");
+
+    // التحقق المباشر من إتمام الدفع بنجاح
+    if (obj.success === true) {
+      const amount = (obj.amount_cents / 100).toFixed(0);
+      const phone = obj.order && obj.order.billing_data && obj.order.billing_data.phone_number 
+                    ? obj.order.billing_data.phone_number 
+                    : "غير محدد";
       
-      let phone = "غير محدد";
-      if (obj.order && obj.order.billing_data && obj.order.billing_data.phone_number) {
-        phone = obj.order.billing_data.phone_number;
-      } else if (obj.source_data && obj.source_data.pan) {
-        phone = obj.source_data.pan;
-      }
-
       const code = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      const message = `✅ *تم الدفع بنجاح*\n----------------------------\n💵 *المبلغ:* \`${amount}\` جنيه\n📞 *رقم المحفظة:* \`${phone}\` \n🎟️ *الكارت المولد:* \`${code}\``;
+      const profile = getProfile(amount);
+
+      const message = `✅ *تم الدفع وتوليد الكارت بنجاح*\n----------------------------\n💰 *المبلغ:* ${amount} جنيه\n📞 *المحفظة:* \`${phone}\` \n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`;
 
       await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM.BOT_TOKEN}/sendMessage`, {
         chat_id: CONFIG.TELEGRAM.CHAT_ID,
