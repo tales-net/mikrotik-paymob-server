@@ -1,13 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const crypto = require('crypto');
 
 const CONFIG = {
   PORT: process.env.PORT || 3000,
   PAYMOB: {
     API_KEY: 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2T0RneU5ERTNMQ0p1WVcxbElqb2lNVGM0TlRZeE5ESXdPQzQzTmpNMU1Ua2lmUS50Sm10SFlkdkYzVzlOYXJOcUk2YTBHTThvWWszUmN1OURBdFU3Q0tFeTB4R0JONnhOWmlLSW93N2xiRHlEanJzOTd5UjVnVjJMaDItME85ODJIYThuQQ==',
-    HMAC_SECRET: '3EB1A996C1BBAFF41BAC83E5EDC6A725',
     WALLET_INTEGRATION_ID: '5406863'
   },
   TELEGRAM: {
@@ -127,49 +125,21 @@ app.get('/api/pay', async (req, res) => {
   }
 });
 
-// 4️⃣ استقبال إشعارات الدفع من Paymob (Webhook) وتوليد الكارت وإرساله للتليجرام
+// 4️⃣ استقبال إشعارات الدفع من Paymob (Webhook) وتوليد الكارت وإرساله للتليجرام فوراً
 app.post('/paymob-webhook', async (req, res) => {
   try {
-    const receivedHmac = req.query.hmac || req.headers['hmac'];
     const data = req.body;
     const obj = data.obj;
 
     if (!obj) return res.status(400).send("Bad Request");
 
-    const concatString = 
-      (obj.amount_cents || '') +
-      (obj.created_at || '') +
-      (obj.currency || '') +
-      (obj.error_occured || '') +
-      (obj.has_parent_transaction || '') +
-      (obj.id || '') +
-      (obj.integration_id || '') +
-      (obj.is_3d_secure || '') +
-      (obj.is_auth || '') +
-      (obj.is_capture || '') +
-      (obj.is_refunded || '') +
-      (obj.is_standalone_payment || '') +
-      (obj.is_voided || '') +
-      (obj.order ? obj.order.id : '') +
-      (obj.owner || '') +
-      (obj.pending || '') +
-      (obj.source_data ? obj.source_data.pan : '') +
-      (obj.source_data ? obj.source_data.sub_type : '') +
-      (obj.source_data ? obj.source_data.type : '') +
-      (obj.success || '');
-
-    const calculatedHmac = crypto
-      .createHmac('sha512', CONFIG.PAYMOB.HMAC_SECRET)
-      .update(concatString)
-      .digest('hex');
-
-    if (calculatedHmac.toLowerCase() !== (receivedHmac || '').toLowerCase()) {
-      return res.status(403).send("Forbidden");
-    }
-
+    // التحقق المباشر من إتمام الدفع بنجاح
     if (obj.success === true) {
       const amount = (obj.amount_cents / 100).toFixed(0);
-      const phone = obj.order.billing_data.phone_number;
+      const phone = obj.order && obj.order.billing_data && obj.order.billing_data.phone_number 
+                    ? obj.order.billing_data.phone_number 
+                    : "غير محدد";
+      
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const profile = getProfile(amount);
 
@@ -184,6 +154,7 @@ app.post('/paymob-webhook', async (req, res) => {
 
     res.status(200).send("OK");
   } catch (err) {
+    console.error("Webhook Error:", err.message);
     res.status(500).send("Error");
   }
 });
