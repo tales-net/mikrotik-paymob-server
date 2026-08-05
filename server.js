@@ -18,14 +18,16 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// دالة تحديد الباقة أو اعتبارها هدية
 function getProfile(amount) {
   const price = parseFloat(amount);
-  if (price === 5)   return "Bronze (البرونزي)";
-  if (price === 15)  return "Silver (الفضي)";
-  if (price === 30)  return "Gold (الذهبي)";
-  if (price === 50)  return "Platinum (البلاتينيوم)";
-  if (price === 100) return "Diamond (الماس)";
-  return "Bronze (البرونزي)";
+  if (price < 5) return { isVoucher: false, name: "هدية / مبلغ إضافي (بدون كارت)" };
+  if (price >= 100) return { isVoucher: true, name: "Diamond (الماس)" };
+  if (price >= 50)  return { isVoucher: true, name: "Platinum (البلاتينيوم)" };
+  if (price >= 30)  return { isVoucher: true, name: "Gold (الذهبي)" };
+  if (price >= 15)  return { isVoucher: true, name: "Silver (الفضي)" };
+  if (price >= 5)   return { isVoucher: true, name: "Bronze (البرونزي)" };
+  return { isVoucher: false, name: "هدية / مبلغ إضافي (بدون كارت)" };
 }
 
 // 1️⃣ الصفحة الرئيسية للتأكد أن السيرفر يعمل
@@ -33,42 +35,37 @@ app.get('/', (req, res) => {
   res.send('🚀 Mikrotik-Paymob Server is Live & Active!');
 });
 
-// 2️⃣ مسار الاختبار السريع (توليد كارت وهمي وتجربة التليجرام)
+// 2️⃣ مسار الاختبار السريع
 app.get('/test-voucher', async (req, res) => {
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const profile = getProfile(15);
-  
   try {
     await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM.BOT_TOKEN}/sendMessage`, {
       chat_id: CONFIG.TELEGRAM.CHAT_ID,
-      text: `🧪 *اختبار السيرفر والتليجرام*\n----------------------------\n💰 *المبلغ:* 15 جنيه\n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`,
+      text: `🧪 *اختبار السيرفر والتليجرام ناجح 100%*`,
       parse_mode: 'Markdown'
     });
-    res.json({ success: true, message: "تم توليد الكارت وتجربة التليجرام بنجاح", code, profile });
+    res.json({ success: true, message: "تم إرسال رسالة الاختبار للتليجرام بنجاح" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 3️⃣ مسار الدفع الديناميكي (يستقبل رقم المحفظة والمبلغ من الرابط ويحول لصفحة الدفع)
+// 3️⃣ مسار الدفع الديناميكي (بدون أي أرقام افتراضية)
 app.get('/api/pay', async (req, res) => {
-  const phone = req.query.phone; // مثال: ?phone=01221695951
-  const amount = req.query.amount || '5'; // افتراضي 5 جنيه لو لم يتم تحديده
+  const phone = req.query.phone;
+  const amount = req.query.amount;
 
-  if (!phone) {
-    return res.status(400).json({ success: false, error: "الرجاء إدخال رقم المحفظة، مثال: /api/pay?phone=01012345678&amount=5" });
+  if (!phone || !amount) {
+    return res.status(400).json({ success: false, error: "الرجاء إدخال رقم المحفظة والمبلغ، مثال: /api/pay?phone=01012345678&amount=30" });
   }
 
   try {
     const amountCents = (parseFloat(amount) * 100).toString();
 
-    // أ. طلب توكن مصادقة من Paymob
     const authRes = await axios.post('https://accept.paymob.com/api/auth/tokens', {
       api_key: CONFIG.PAYMOB.API_KEY
     });
     const token = authRes.data.token;
 
-    // ب. تسجيل طلب (Order)
     const orderRes = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
       auth_token: token,
       delivery_needed: false,
@@ -78,7 +75,6 @@ app.get('/api/pay', async (req, res) => {
     });
     const orderId = orderRes.data.id;
 
-    // ج. طلب مفتاح دفع (Payment Key)
     const keyRes = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
       auth_token: token,
       amount_cents: amountCents,
@@ -104,7 +100,6 @@ app.get('/api/pay', async (req, res) => {
     });
     const paymentKey = keyRes.data.token;
 
-    // د. طلب الدفع بالمحفظة للرقم المدخل
     const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
       source: {
         identifier: phone,
@@ -125,25 +120,56 @@ app.get('/api/pay', async (req, res) => {
   }
 });
 
-// 4️⃣ استقبال إشعارات الدفع من Paymob (Webhook) وتوليد الكارت وإرساله للتليجرام فوراً
+// 4️⃣ استقبال إشعارات الدفع من Paymob (Webhook) مع التنسيق الاحترافي
 app.post('/paymob-webhook', async (req, res) => {
   try {
     const data = req.body;
-    const obj = data.obj;
+    const obj = data.obj || data;
 
-    if (!obj) return res.status(400).send("Bad Request");
-
-    // التحقق المباشر من إتمام الدفع بنجاح
-    if (obj.success === true) {
-      const amount = (obj.amount_cents / 100).toFixed(0);
-      const phone = obj.order && obj.order.billing_data && obj.order.billing_data.phone_number 
-                    ? obj.order.billing_data.phone_number 
-                    : "غير محدد";
+    if (obj.success === true || obj.success === "true") {
+      const amountCents = obj.amount_cents || (obj.order && obj.order.amount_cents) || 500;
+      const amount = (amountCents / 100).toFixed(2);
       
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const profile = getProfile(amount);
+      let phone = "غير محدد";
+      if (obj.order && obj.order.billing_data && obj.order.billing_data.phone_number) {
+        phone = obj.order.billing_data.phone_number;
+      } else if (obj.source_data && obj.source_data.pan) {
+        phone = obj.source_data.pan;
+      }
 
-      const message = `✅ *تم الدفع وتوليد الكارت بنجاح*\n----------------------------\n💰 *المبلغ:* ${amount} جنيه\n📞 *المحفظة:* \`${phone}\` \n🎟️ *الكارت المولد:* \`${code}\`\n📦 *البروفايل:* ${profile}`;
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const profileInfo = getProfile(amount);
+      const transactionId = obj.id || "غير متوفر";
+      const orderId = (obj.order && obj.order.id) || obj.order_id || "TALES-" + Date.now();
+      
+      const now = new Date();
+      const formattedDate = now.toISOString().split('T')[0];
+      const formattedTime = now.toTimeString().split(' ')[0].substring(0, 5);
+
+      let message = "";
+
+      if (profileInfo.isVoucher) {
+        message = `✅ *تم الدفع بنجاح*\n\n` +
+                  `━━━━━━━━━━━━━━\n\n` +
+                  `💳 *رقم العملية*\n\`${transactionId}\`\n\n` +
+                  `📦 *الباقة*\n${profileInfo.name}\n\n` +
+                  `💰 *المبلغ*\n${amount} جنيه\n\n` +
+                  `📱 *المحفظة*\n\`${phone}\`\n\n` +
+                  `🆔 *Order*\n\`${orderId}\`\n\n` +
+                  `🎫 *الكارت*\n\`${code}\`\n\n` +
+                  `🕒 *الوقت*\n${formattedDate}\n${formattedTime}\n\n` +
+                  `━━━━━━━━━━━━━━`;
+      } else {
+        message = `🎁 *تم استلام مبلغ (هدية / بدون كارت)*\n\n` +
+                  `━━━━━━━━━━━━━━\n\n` +
+                  `💳 *رقم العملية*\n\`${transactionId}\`\n\n` +
+                  `💰 *المبلغ*\n${amount} جنيه\n\n` +
+                  `📱 *المحفظة*\n\`${phone}\`\n\n` +
+                  `🆔 *Order*\n\`${orderId}\`\n\n` +
+                  `🕒 *الوقت*\n${formattedDate}\n${formattedTime}\n\n` +
+                  `⚠️ *ملاحظة:* المبلغ أقل من الحد الأدنى للباقات، لذا لم يتم توليد كارت.\n` +
+                  `━━━━━━━━━━━━━━`;
+      }
 
       await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM.BOT_TOKEN}/sendMessage`, {
         chat_id: CONFIG.TELEGRAM.CHAT_ID,
