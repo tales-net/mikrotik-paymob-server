@@ -8,6 +8,17 @@ async function sendTelegramMessage(obj, success) {
   const orderId = obj.order?.merchant_order_id || `TALES-${obj.order?.id}`;
   const time = new Date().toLocaleString('ar-EG', { hour12: false });
 
+  // استخراج تفاصيل البطاقة أو المحفظة
+  let details = "";
+  if (method.toLowerCase().includes("card")) {
+    const last4 = obj.payment_method?.masked_pan?.slice(-4) || "****";
+    details = `💳 البطاقة: **** **** **** ${last4}`;
+  } else if (method.toLowerCase().includes("wallet")) {
+    details = `📱 المحفظة: ${phone}`;
+  } else {
+    details = `🔧 وسيلة أخرى: ${method}`;
+  }
+
   const message = `${success ? "✅ دفع ناجح" : "❌ دفع فاشل"}
 ━━━━━━━━━━━━━━
 💳 رقم العملية: ${transactionId}
@@ -15,6 +26,7 @@ async function sendTelegramMessage(obj, success) {
 💰 المبلغ: ${amount} جنيه
 📱 العميل: ${phone}
 💳 الوسيلة: ${method}
+${details}
 ⏰ الوقت: ${time}
 ━━━━━━━━━━━━━━`;
 
