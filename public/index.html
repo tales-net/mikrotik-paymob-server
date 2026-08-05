@@ -22,71 +22,27 @@
       padding: 30px;
       border-radius: 15px;
       box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-      animation: fadeIn 0.8s ease-in-out;
     }
     h2 {
       text-align: center;
       margin-bottom: 25px;
       color: #2c3e50;
     }
-    .form-group {
-      margin-bottom: 18px;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: bold;
-      color: #34495e;
-    }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 6px; font-weight: bold; color: #34495e; }
     input, select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 15px;
-      transition: border-color 0.3s, box-shadow 0.3s;
+      width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;
+      font-size: 15px; transition: border-color 0.3s, box-shadow 0.3s;
     }
-    input:focus, select:focus {
-      border-color: #27ae60;
-      outline: none;
-      box-shadow: 0px 0px 6px rgba(39,174,96,0.3);
-    }
+    input:focus, select:focus { border-color: #27ae60; outline: none; box-shadow: 0px 0px 6px rgba(39,174,96,0.3); }
     button {
-      width: 100%;
-      padding: 14px;
-      background: #27ae60;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      font-weight: bold;
+      width: 100%; padding: 14px; background: #27ae60; color: #fff; border: none;
+      border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;
     }
-    button:hover {
-      background: #219150;
-    }
-    .note {
-      font-size: 13px;
-      color: #7f8c8d;
-      text-align: center;
-      margin-top: 15px;
-    }
-    .logos {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .logos img {
-      height: 35px;
-      object-fit: contain;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    button:hover { background: #219150; }
+    .note { font-size: 13px; color: #7f8c8d; text-align: center; margin-top: 15px; }
+    .logos { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+    .logos img { height: 35px; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -95,17 +51,12 @@
     <form id="paymentForm">
       <div class="form-group">
         <label>رقم المحفظة / البطاقة</label>
-        <input type="text" name="account" required>
+        <input type="text" name="phone" required>
       </div>
 
       <div class="form-group">
-        <label>تاريخ الانتهاء</label>
-        <input type="text" name="expiry" placeholder="MM/YY">
-      </div>
-
-      <div class="form-group">
-        <label>رمز CVV</label>
-        <input type="text" name="cvv" maxlength="3">
+        <label>المبلغ</label>
+        <input type="number" name="amount" required>
       </div>
 
       <div class="form-group">
@@ -119,16 +70,10 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label>المبلغ</label>
-        <input type="number" name="amount" required>
-      </div>
-
       <button type="submit">✅ ادفع الآن</button>
     </form>
     <p class="note">⚠️ بياناتك تُستخدم فقط لإتمام عملية الدفع عبر Paymob</p>
 
-    <!-- شعارات الدفع الرسمية -->
     <div class="logos">
       <img src="https://seeklogo.com/images/P/paymob-logo-9E1E7C9F6D-seeklogo.com.png" alt="Paymob">
       <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Central_Bank_of_Egypt_logo.png" alt="البنك المركزي المصري">
