@@ -11,15 +11,15 @@ const PORT = process.env.PORT || 3333;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// صفحة الهوتسبوت
+// ✅ صفحة الهوتسبوت
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
-// API الدفع
+// ✅ API الدفع
 app.post("/api/pay", async (req, res) => {
   try {
-    const { phone, amount, method, account, expiry, cvv } = req.body;
+    const { phone, amount, method, account } = req.body;
     const result = await createPaymobPayment(phone || account, amount, method);
 
     if (result.type === "redirect") {
@@ -33,9 +33,10 @@ app.post("/api/pay", async (req, res) => {
   }
 });
 
-// Webhook من Paymob
+// ✅ Webhook من Paymob
 app.use("/", webhookRouter);
 
+// ✅ تشغيل السيرفر
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
