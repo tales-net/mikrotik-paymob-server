@@ -44,7 +44,7 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
     const orderId = await createOrder(token, amountCents);
     const paymentKey = await getPaymentKey(token, orderId, amountCents, integrationId, phone || '01000000000');
 
-    // 4. معالجة وسيلة المحفظة الإلكترونية (Mobile Wallet)
+    // 4. معالجة وسيلة المحفظة الإلكترونية (Mobile Wallet) فقط هي التي تحتاج Redirect خارجي
     if (method.toLowerCase() === 'wallet') {
       const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
         source: {
@@ -58,26 +58,17 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 5. معالجة البطاقات البنكية (Visa/Mastercard)
-    else if (method.toLowerCase() === 'card') {
-      const iframeId = process.env.PAYMOB_IFRAME_ID;
-      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
-      
-      // إرجاع توجيه مباشر لـ Iframe أو الصفحة حسب الحاجة
-      return { type: 'redirect', url: iframeUrl };
-    } 
-    
-    // 6. معالجة وسائل التقسيط والخدمات الأخرى (Valu, Seven, Aman)
+    // 5. معالجة البطاقات البنكية ووسائل التقسيط (Card, Valu, Seven, Aman) عبر صفحة Iframe الآمنة
     else {
       const iframeId = process.env.PAYMOB_IFRAME_ID;
       if (typeof getCheckoutPage === 'function') {
         const htmlPage = getCheckoutPage(paymentKey, iframeId);
         return { type: 'html', content: htmlPage };
       }
-      return { 
-        type: 'redirect', 
-        url: `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}` 
-      };
+      
+      // كود احتياطي في حال عدم توفر دالة الـ checkout
+      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
+      return { type: 'redirect', url: iframeUrl };
     }
 
   } catch (err) {
