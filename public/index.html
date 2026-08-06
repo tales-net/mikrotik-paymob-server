@@ -114,6 +114,18 @@
             font-size: 18px;
         }
 
+        /* زر إظهار/إخفاء الرمز لـ CVV */
+        .toggle-password {
+            position: absolute;
+            left: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            font-size: 16px;
+            outline: none;
+        }
+
         .error-message {
             color: #dc3545;
             font-size: 12px;
@@ -322,7 +334,7 @@
                             <div class="error-message" id="error_card_name">يرجى إدخال الاسم بالحروف الإنجليزية فقط.</div>
                         </div>
 
-                        <!-- تاريخ الانتهاء و CVC -->
+                        <!-- تاريخ الانتهاء و CVC مع زر الإظهار والإخفاء -->
                         <div class="input-containers">
                             <div class="input-group-custom">
                                 <label>التاريخ:</label>
@@ -341,11 +353,15 @@
                                 <label>رمز CVV:</label>
                                 <div class="input-wrapper">
                                     <input placeholder="CVV" 
-                                           type="text" 
+                                           type="password" 
                                            inputmode="numeric" 
                                            name="cvc" 
                                            id="card_cvc" 
-                                           maxlength="3">
+                                           maxlength="3"
+                                           style="padding-left: 35px;">
+                                    <button type="button" class="toggle-password" id="toggleCvvBtn" title="إظهار/إخفاء الرمز">
+                                        <i class="fa fa-eye" id="cvvIcon"></i>
+                                    </button>
                                 </div>
                                 <div class="error-message" id="error_cvc">يجب إدخال 3 أرقام.</div>
                             </div>
@@ -362,11 +378,12 @@
                             متابعة وتأكيد الدفع
                         </button>
 
-                        <span class="secured-tag"><i class="fa fa-lock" aria-hidden="true"></i> مؤمن بالكامل بواسطة PayTabs</span>
+                        <span class="secured-tag"><i class="fa fa-lock" aria-hidden="true"></i> مؤمن بالكامل بواسطة Paymob</span>
                     </div>
                 </form>
             </section>
-
+        </div>
+    </div>
 
     <!-- التذييل مع شعارات البنوك -->
     <footer>
@@ -379,7 +396,7 @@
                 <div class="bank-logo-card" title="البنك المركزي المصري">
                     <img src="https://cbpn.currencyresearch.com/wp-content/uploads/2025/09/CentralBankofEgypt.png.webp" alt="البنك المركزي المصري">
                 </div>
-                <div class="bank-logo-card" title="البنك الالأسكندرية CIB">
+                <div class="bank-logo-card" title="بنك الأسكندرية">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Alex_Bank_Logo.svg" alt="بنك الأسكندرية">
                 </div>
             </div>
@@ -410,6 +427,23 @@
             const amountParam = urlParams.get('amount');
             if (amountParam) {
                 document.getElementById('pay_amount').value = amountParam;
+            }
+        });
+
+        // تفعيل زر إظهار وإخفاء رمز الـ CVV فقط
+        const toggleCvvBtn = document.getElementById('toggleCvvBtn');
+        const cardCvcInput = document.getElementById('card_cvc');
+        const cvvIcon = document.getElementById('cvvIcon');
+
+        toggleCvvBtn.addEventListener('click', () => {
+            if (cardCvcInput.type === 'password') {
+                cardCvcInput.type = 'text';
+                cvvIcon.classList.remove('fa-eye');
+                cvvIcon.classList.add('fa-eye-slash');
+            } else {
+                cardCvcInput.type = 'password';
+                cvvIcon.classList.remove('fa-eye-slash');
+                cvvIcon.classList.add('fa-eye');
             }
         });
 
