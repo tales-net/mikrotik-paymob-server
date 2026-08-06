@@ -1,131 +1,644 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>💳 صفحة الدفع</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: "Cairo", sans-serif;
-      background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
-      margin: 0; padding: 0;
-      display: flex; justify-content: center; align-items: center;
-      min-height: 100vh;
-    }
-    .container {
-      width: 100%; max-width: 420px;
-      background: #fff; padding: 30px;
-      border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    }
-    h2 { text-align: center; margin-bottom: 25px; color: #2c3e50; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; margin-bottom: 6px; font-weight: bold; color: #34495e; }
-    input, select {
-      width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;
-      font-size: 15px; transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    input:focus, select:focus { border-color: #27ae60; outline: none; box-shadow: 0px 0px 6px rgba(39,174,96,0.3); }
-    button {
-      width: 100%; padding: 14px; background: #27ae60; color: #fff; border: none;
-      border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;
-    }
-    button:hover { background: #219150; }
-    .note { font-size: 13px; color: #7f8c8d; text-align: center; margin-top: 15px; }
-    .alert { font-size: 14px; color: #e74c3c; text-align: center; margin-bottom: 15px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>💳 ادفع الآن</h2>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>بيانات الدفع الآمن - حكايات</title>
 
-    <!-- تنبيه للمستخدم -->
-    <div class="alert">
-      ⚠️ عند اختيار الدفع بالكارت، سيتم إدخال بيانات البطاقة داخل بوابة Paymob الرسمية (IFrame) بعد الضغط على "ادفع الآن".  
-      لا تدخل بيانات البطاقة هنا في النموذج، هذه الحقول للعرض فقط.
+    <!-- FontAwesome & Bootstrap Grid CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap-grid.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            direction: rtl;
+        }
+
+        .payment-header {
+            text-align: center;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .payment-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #01338D;
+        }
+
+        .checkout-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            max-width: 480px;
+            margin: 0 auto 30px auto;
+        }
+
+        .input-group-custom {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .input-group-custom label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input, .input-group-custom select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            text-align: left;
+            direction: ltr;
+            box-sizing: border-box;
+        }
+
+        .input-group-custom select {
+            text-align: right;
+            direction: rtl;
+            background: #fff;
+        }
+
+        .input-wrapper input:focus, .input-group-custom select:focus {
+            border-color: #01338D;
+        }
+
+        .input-wrapper input.is-invalid {
+            border-color: #dc3545 !important;
+        }
+
+        /* تنسيق الشعارات داخل الخانات */
+        .input-icon-right {
+            position: absolute;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+            background: #fff;
+            padding-left: 5px;
+        }
+
+        .input-icon-right .meeza-badge {
+            background: #004a99;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .input-icon-right .cash-icon {
+            color: #28a745;
+            font-size: 18px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+            text-align: right;
+            direction: rtl;
+        }
+
+        .input-containers {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-containers .input-group-custom {
+            flex: 1;
+        }
+
+        #card_section {
+            display: none;
+        }
+
+        /* خانة التقسيط: مخفية بحالة افتراضية وتظهر عند كتابة 16 رقم */
+        .checkInstallmentTextDiv {
+            background-color: #eef4ff;
+            border: 1px dashed #01338D;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #01338D;
+            display: none;
+        }
+
+        .card-footer-box {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .saveCardText {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .submit-btn {
+            background-color: #01338D;
+            color: #ffffff;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background-color: #002266;
+        }
+
+        .submit-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .secured-tag {
+            display: block;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* تنسيق شعارات البنوك الملونة في التذييل */
+        footer {
+            padding: 25px 0 35px 0;
+            background: #ffffff;
+            border-top: 1px solid #e9ecef;
+            margin-top: 25px;
+        }
+
+        .bank-logos-container {
+            text-align: center;
+        }
+
+        .bank-logos-title {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .bank-logos-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .bank-logo-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 48px;
+        }
+
+        .bank-logo-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        .bank-logo-card img {
+            max-height: 32px;
+            max-width: 90px;
+            width: auto;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="payment-header">
+        <h1>إتمام الدفع الإلكتروني</h1>
+    </header>
+
+    <div class="container">
+        <div class="checkout-card">
+            <section class="card-inputs">
+                <form id="paymob_checkout" action="/api/pay" method="POST" novalidate>
+                    <input type="hidden" id="card_expiry_mm" name="card_expiry_mm">
+                    <input type="hidden" id="card_expiry_yy" name="card_expiry_yy">
+
+                    <!-- 1. اختيار وسيلة الدفع -->
+                    <div class="input-group-custom">
+                        <label>اختر وسيلة الدفع:</label>
+                        <select name="payment_method" id="payment_method" required>
+                            <option value="wallet" selected>محفظة إلكترونية (Mobile Wallet)</option>
+                            <option value="card">بطاقة بنكية (Visa / Mastercard)</option>
+                            <option value="valu">فاليو / تقسيط (Valu)</option>
+                            <option value="seven">برنامج سفن (SEVEN)</option>
+                            <option value="aman">أمان / مصاري (Aman)</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. قيمة المبلغ -->
+                    <div class="input-group-custom">
+                        <label>المبلغ (بالجنيه):</label>
+                        <div class="input-wrapper">
+                            <input placeholder="أدخل المبلغ المطلوب" 
+                                   type="text" 
+                                   inputmode="numeric" 
+                                   name="amount" 
+                                   id="pay_amount" required>
+                        </div>
+                        <div class="error-message" id="error_amount">يرجى إدخال مبلغ صحيح.</div>
+                    </div>
+
+                    <!-- 3. رقم الهاتف / المحفظة -->
+                    <div class="input-group-custom" id="phone_group">
+                        <label>رقم الهاتف / المحفظة:</label>
+                        <div class="input-wrapper">
+                            <input placeholder="01XXXXXXXXX" 
+                                   type="text" 
+                                   inputmode="numeric" 
+                                   name="phone" 
+                                   id="user_phone" 
+                                   maxlength="11" 
+                                   style="padding-right: 85px;">
+                            <div class="input-icon-right" id="wallet_icons">
+                                <span class="meeza-badge">ميزة Meeza</span>
+                                <i class="fa fa-money cash-icon" title="دفع نقدي / محفظة"></i>
+                            </div>
+                        </div>
+                        <div class="error-message" id="error_phone">يجب كتابة رقم هاتف صحيح 11 رقماً ويبدأ بـ 01.</div>
+                    </div>
+
+                    <!-- 4. خانات البطاقة البنكية -->
+                    <div id="card_section">
+                        <!-- رقم الكارت مع شعار الفيزا وماستر كارد -->
+                        <div class="input-group-custom">
+                            <label>رقم البطاقة البنكية:</label>
+                            <div class="input-wrapper">
+                                <input placeholder="Card Number" 
+                                       type="text" 
+                                       inputmode="numeric" 
+                                       name="number" 
+                                       id="card_number" 
+                                       maxlength="19" 
+                                       autocomplete="cc-number"
+                                       style="padding-right: 75px;">
+                                <div class="input-icon-right">
+                                    <i class="fa fa-cc-visa fa-lg" style="color: #1a1f71;"></i>
+                                    <i class="fa fa-cc-mastercard fa-lg" style="color: #eb001b;"></i>
+                                </div>
+                            </div>
+                            <div class="error-message" id="error_card_number">يجب كتابة 16 رقماً بالإنجليزية بدون حروف.</div>
+                        </div>
+
+                        <!-- رسالة مؤهلة لخطط التقسيط البنكي -->
+                        <div class="checkInstallmentTextDiv" id="installment_notice">
+                            <span>بطاقتك قد تكون مؤهلة لخطط التقسيط البنكي</span>
+                        </div>
+
+                        <!-- اسم صاحب الكارت -->
+                        <div class="input-group-custom">
+                            <label>اسم صاحب البطاقة:</label>
+                            <div class="input-wrapper">
+                                <input placeholder="Card Holder Name" 
+                                       type="text" 
+                                       name="name" 
+                                       id="card_name">
+                            </div>
+                            <div class="error-message" id="error_card_name">يرجى إدخال الاسم بالحروف الإنجليزية فقط.</div>
+                        </div>
+
+                        <!-- تاريخ الانتهاء و CVC -->
+                        <div class="input-containers">
+                            <div class="input-group-custom">
+                                <label>التاريخ:</label>
+                                <div class="input-wrapper">
+                                    <input placeholder="MM/YY" 
+                                           type="text" 
+                                           inputmode="numeric" 
+                                           name="expiry" 
+                                           id="mmyy" 
+                                           maxlength="5">
+                                </div>
+                                <div class="error-message" id="error_mmyy">تاريخ غير صحيح.</div>
+                            </div>
+
+                            <div class="input-group-custom">
+                                <label>رمز CVV:</label>
+                                <div class="input-wrapper">
+                                    <input placeholder="CVV" 
+                                           type="text" 
+                                           inputmode="numeric" 
+                                           name="cvc" 
+                                           id="card_cvc" 
+                                           maxlength="3">
+                                </div>
+                                <div class="error-message" id="error_cvc">يجب إدخال 3 أرقام.</div>
+                            </div>
+                        </div>
+
+                        <div class="saveCardText">
+                            <label for="save_card">حفظ بيانات البطاقة للمعاملات القادمة</label>
+                            <input type="checkbox" id="save_card" value="tokenize" name="save_card">
+                        </div>
+                    </div>
+
+                    <div class="card-footer-box">
+                        <button id="submitButton" type="submit" class="submit-btn">
+                            متابعة وتأكيد الدفع
+                        </button>
+
+                        <span class="secured-tag"><i class="fa fa-lock" aria-hidden="true"></i> مؤمن بالكامل بواسطة PayTabs</span>
+                    </div>
+                </form>
+            </section>
+        </div>
     </div>
 
-    <form id="paymentForm">
-      <!-- محفظة -->
-      <div class="form-group wallet-only">
-        <label>رقم المحفظة</label>
-        <input type="text" name="phone" placeholder="01234567890">
-      </div>
+    <!-- التذييل مع شعارات البنوك المحددة من قبلك -->
+    <footer>
+        <div class="container bank-logos-container">
+            <div class="bank-logos-title">معتمد ومؤمن عبر البنوك المصرية والبنك المركزي</div>
+            <div class="bank-logos-grid">
+                <!-- البنك المركزي المصري -->
+                <div class="bank-logo-card" title="البنك المركزي المصري">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/79/Central_Bank_of_Egypt_Logo.png" alt="البنك المركزي المصري">
+                </div>
+                <!-- البنك الأهلي المصري -->
+                <div class="bank-logo-card" title="البنك الأهلي المصري">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyQK8qxPP2zQ5VGsuc67tWs47ChVJU81n3c4cibJYAS3fOZRurbhovue2l&s=10" alt="البنك الأهلي المصري">
+                </div>
+                <!-- بنك المشرق -->
+                <div class="bank-logo-card" title="بنك المشرق">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS02oZ-v6oDx2Qwwdf5Xh5FSg1zbtXpoEjKj4mjqCT6WmAr7lLyfmDk2N8g&s=10" alt="بنك المشرق">
+                </div>
+                <!-- البنك التجاري الدولي CIB -->
+                <div class="bank-logo-card" title="البنك التجاري الدولي CIB">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV4BeLV9_r3vKy8zPXwv7KmUK4wBLwG1gbiO8wvhRiKw&s=10" alt="CIB Bank">
+                </div>
+            </div>
+        </div>
+    </footer>
 
-      <!-- كارت (للتوضيح فقط) -->
-      <div class="form-group card-only" style="display:none;">
-        <label>رقم البطاقة (سيتم إدخاله في IFrame)</label>
-        <input type="text" disabled placeholder="**** **** **** ****">
-      </div>
+    <script>
+        // --- 1. التحكم في إظهار وإخفاء الحقول ديناميكياً ---
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const cardSection = document.getElementById('card_section');
+        const phoneGroup = document.getElementById('phone_group');
+        const installmentNotice = document.getElementById('installment_notice');
 
-      <div class="form-group card-only" style="display:none;">
-        <label>تاريخ الانتهاء (MM/YY)</label>
-        <input type="text" disabled placeholder="MM/YY">
-      </div>
+        function toggleFields() {
+            const selectedMethod = paymentMethodSelect.value;
 
-      <div class="form-group card-only" style="display:none;">
-        <label>رمز CVV</label>
-        <input type="text" disabled placeholder="***">
-      </div>
-
-      <!-- طريقة الدفع -->
-      <div class="form-group">
-        <label>طريقة الدفع</label>
-        <select name="method" id="method">
-          <option value="wallet">محفظة</option>
-          <option value="card">كارت</option>
-          <option value="valu">ValU</option>
-          <option value="aman">Aman</option>
-          <option value="seven">Seven</option>
-        </select>
-      </div>
-
-      <!-- المبلغ -->
-      <div class="form-group">
-        <label>المبلغ</label>
-        <input type="number" name="amount" min="1" required>
-      </div>
-
-      <button type="submit">✅ ادفع الآن</button>
-    </form>
-
-    <p class="note">⚠️ بياناتك تُستخدم فقط لإتمام عملية الدفع عبر Paymob</p>
-  </div>
-
-  <script>
-    const methodSelect = document.getElementById("method");
-    const walletFields = document.querySelectorAll(".wallet-only");
-    const cardFields = document.querySelectorAll(".card-only");
-
-    methodSelect.addEventListener("change", () => {
-      if (methodSelect.value === "wallet") {
-        walletFields.forEach(el => el.style.display = "block");
-        cardFields.forEach(el => el.style.display = "none");
-      } else {
-        walletFields.forEach(el => el.style.display = "none");
-        cardFields.forEach(el => el.style.display = "block");
-      }
-    });
-
-    document.getElementById("paymentForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(e.target).entries());
-
-      const res = await fetch("/api/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      try {
-        const result = await res.json();
-        if (result.payment_url) {
-          window.location.href = result.payment_url;
+            if (selectedMethod === 'card') {
+                cardSection.style.display = 'block';
+                phoneGroup.style.display = 'none';
+            } else {
+                cardSection.style.display = 'none';
+                phoneGroup.style.display = 'block';
+                installmentNotice.style.display = 'none';
+            }
         }
-      } catch {
-        const html = await res.text();
-        document.body.innerHTML = html;
-      }
-    });
-  </script>
+
+        paymentMethodSelect.addEventListener('change', toggleFields);
+
+        // --- 2. قراءة المبلغ التلقائي من الرابط إن وجد ---
+        window.addEventListener('DOMContentLoaded', () => {
+            toggleFields();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const amountParam = urlParams.get('amount');
+            if (amountParam) {
+                document.getElementById('pay_amount').value = amountParam;
+            }
+        });
+
+        // --- 3. تحويل الأرقام والتحقق من صحة المدخلات ---
+        function convertArabicDigitsToEnglish(str) {
+            return str.replace(/[٠-٩]/g, function (d) {
+                return d.charCodeAt(0) - 1632;
+            });
+        }
+
+        // المبلغ
+        const amountInput = document.getElementById('pay_amount');
+        amountInput.addEventListener('input', function (e) {
+            let val = convertArabicDigitsToEnglish(e.target.value).replace(/[^\d.]/g, '');
+            e.target.value = val;
+            validateAmount();
+        });
+
+        function validateAmount() {
+            const val = parseFloat(amountInput.value);
+            const errorElement = document.getElementById('error_amount');
+            if (isNaN(val) || val <= 0) {
+                amountInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                amountInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+                return true;
+            }
+        }
+
+        // رقم الهاتف
+        const phoneInput = document.getElementById('user_phone');
+        phoneInput.addEventListener('input', function (e) {
+            let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
+            if (val.length > 11) val = val.substring(0, 11);
+            e.target.value = val;
+            validatePhone();
+        });
+
+        function validatePhone() {
+            if (paymentMethodSelect.value === 'card') return true;
+            const val = phoneInput.value;
+            const errorElement = document.getElementById('error_phone');
+            const isValid = val.length === 11 && val.startsWith('01');
+
+            if (!isValid) {
+                phoneInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                phoneInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+                return true;
+            }
+        }
+
+        // رقم البطاقة (إظهار التقسيط عند اكتمال 16 رقماً)
+        const cardNumberInput = document.getElementById('card_number');
+        cardNumberInput.addEventListener('input', function (e) {
+            let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
+            if (val.length > 16) val = val.substring(0, 16);
+
+            let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
+            e.target.value = formatted;
+
+            if (val.length === 16) {
+                installmentNotice.style.display = 'block';
+            } else {
+                installmentNotice.style.display = 'none';
+            }
+
+            validateCardNumber();
+        });
+
+        function validateCardNumber() {
+            if (paymentMethodSelect.value !== 'card') return true;
+            const rawValue = cardNumberInput.value.replace(/\s+/g, '');
+            const errorElement = document.getElementById('error_card_number');
+            if (rawValue.length < 16) {
+                cardNumberInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                cardNumberInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+                return true;
+            }
+        }
+
+        // تاريخ الانتهاء (MM/YY)
+        const mmyyInput = document.getElementById('mmyy');
+        mmyyInput.addEventListener('input', function (e) {
+            let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
+            if (val.length >= 2) {
+                e.target.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+            } else {
+                e.target.value = val;
+            }
+            validateMMYY();
+        });
+
+        function validateMMYY() {
+            if (paymentMethodSelect.value !== 'card') return true;
+            const val = mmyyInput.value;
+            const errorElement = document.getElementById('error_mmyy');
+            const regex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+
+            if (!regex.test(val)) {
+                mmyyInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                mmyyInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+
+                const parts = val.split('/');
+                document.getElementById('card_expiry_mm').value = parts[0];
+                document.getElementById('card_expiry_yy').value = parts[1];
+                return true;
+            }
+        }
+
+        // رمز CVC (3 أرقام)
+        const cvcInput = document.getElementById('card_cvc');
+        cvcInput.addEventListener('input', function (e) {
+            let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
+            if (val.length > 3) val = val.substring(0, 3);
+            e.target.value = val;
+            validateCVC();
+        });
+
+        function validateCVC() {
+            if (paymentMethodSelect.value !== 'card') return true;
+            const val = cvcInput.value;
+            const errorElement = document.getElementById('error_cvc');
+            if (val.length < 3) {
+                cvcInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                cvcInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+                return true;
+            }
+        }
+
+        // اسم صاحب الكارت
+        const nameInput = document.getElementById('card_name');
+        nameInput.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+            validateName();
+        });
+
+        function validateName() {
+            if (paymentMethodSelect.value !== 'card') return true;
+            const val = nameInput.value.trim();
+            const errorElement = document.getElementById('error_card_name');
+            if (val.length < 3) {
+                nameInput.classList.add('is-invalid');
+                errorElement.style.display = 'block';
+                return false;
+            } else {
+                nameInput.classList.remove('is-invalid');
+                errorElement.style.display = 'none';
+                return true;
+            }
+        }
+
+        // --- 4. إرسال النموذج ---
+        document.getElementById("paymob_checkout").addEventListener("submit", function (e) {
+            const isAmountValid = validateAmount();
+            let isPhoneValid = true;
+            let isCardValid = true, isNameValid = true, isExpiryValid = true, isCvcValid = true;
+
+            if (paymentMethodSelect.value === 'card') {
+                isCardValid = validateCardNumber();
+                isNameValid = validateName();
+                isExpiryValid = validateMMYY();
+                isCvcValid = validateCVC();
+            } else {
+                isPhoneValid = validatePhone();
+            }
+
+            if (!isAmountValid || !isPhoneValid || !isCardValid || !isNameValid || !isExpiryValid || !isCvcValid) {
+                e.preventDefault();
+                return;
+            }
+
+            const submitBtn = document.getElementById("submitButton");
+            submitBtn.disabled = true;
+            submitBtn.innerText = "جاري المعالجة والتحويل...";
+        });
+    </script>
 </body>
 </html>
