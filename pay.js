@@ -29,31 +29,24 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
     // 2. الحصول على التوكن ورقم الطلب ومفتاح الدفع
     const token = await getAuthToken();
     const orderId = await createOrder(token, amountCents);
-    const paymentKey = await getPaymentKey(token, orderId, amountCents, integrationId, phone || '01000000000');
+    const paymentKey = await getPaymentKey(token, orderId, amountCents, integrationId, phone || '1112345678');
 
-    // 3. معالجة وسائل الدفع التي تعمل كـ POST Request (محفظة، فاليو، سفن، أمان)
-    if (['wallet', 'valu', 'seven', 'aman'].includes(cleanMethod)) {
-      const subtypeMap = {
-        'wallet': 'WALLET',
-        'valu': 'VALU',
-        'seven': 'SEVEN',
-        'aman': 'AMAN'
-      };
-
-      const res = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
+    // 3. المحفظة وحدها هي التي تستخدم طريقة الـ POST لطلب رابط الدفع الفوري
+    if (cleanMethod === 'wallet') {
+      const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
         source: {
-          identifier: phone || '01000000000',
-          subtype: subtypeMap[cleanMethod]
+          identifier: phone || '1112345678',
+          subtype: "WALLET"
         },
         payment_token: paymentKey
       });
 
-      const redirectUrl = res.data.iframe_redirection_url || res.data.redirection_url;
-      if (!redirectUrl) throw new Error(`Failed to get redirect URL for ${cleanMethod}`);
+      const redirectUrl = walletRes.data.iframe_redirection_url || walletRes.data.redirection_url;
+      if (!redirectUrl) throw new Error("لم يتم استرجاع رابط إعادة توجيه المحفظة");
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 4. معالجة البطاقات البنكية فقط عبر الرابط المباشر
+    // 4. البطاقات، فاليو، سفن، وأمان تستخدم رابط الـ Standalone الصحيح لتظهر صفحة الخدمة بداخلها بكامل خطواتها
     else {
       const directRedirectUrl = `https://accept.paymob.com/standalone/payments/redirect_url?payment_token=${paymentKey}`;
       return { type: 'redirect', url: directRedirectUrl };
