@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3333;
 
 // رابط صفحة تسجيل دخول الهوتسبوت أو صفحة الشبكة الرئيسية
-const NETWORK_URL = process.env.NETWORK_HOTSPOT_URL || "http://10.0.0.1";
+const NETWORK_URL = process.env.NETWORK_HOTSPOT_URL || "http://172.16.0.5";
 
 // 1. تفعيل الميدلوير لقراءة البيانات ومجلد الملفات الثابتة (public)
 app.use(bodyParser.json());
