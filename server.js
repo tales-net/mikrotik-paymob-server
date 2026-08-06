@@ -10,6 +10,9 @@ const webhookRouter = require("./webhook");
 const app = express();
 const PORT = process.env.PORT || 3333;
 
+// رابط صفحة تسجيل دخول الهوتسبوت أو صفحة الشبكة الرئيسية
+const NETWORK_URL = process.env.NETWORK_HOTSPOT_URL || "http://10.0.0.1";
+
 // 1. تفعيل الميدلوير لقراءة البيانات ومجلد الملفات الثابتة (public)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -68,7 +71,7 @@ async function handlePaymentRequest(req, res) {
 app.get("/api/pay", handlePaymentRequest);
 app.post("/api/pay", handlePaymentRequest);
 
-// 4. صفحة نجاح الدفع المنسقة
+// 4. صفحة نجاح الدفع المنسقة (تتيح التوجيه لصفحة الهوتسبوت)
 app.get("/success", (req, res) => {
   const transactionId = req.query.id || "غير متوفر";
   res.send(`
@@ -84,16 +87,18 @@ app.get("/success", (req, res) => {
           .icon { font-size: 50px; color: #27ae60; margin-bottom: 10px; }
           h1 { color: #2c3e50; font-size: 22px; margin-bottom: 10px; }
           p { color: #555; font-size: 15px; line-height: 1.6; }
-          .btn { display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold; }
+          .btn { display: inline-block; background: #27ae60; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin-top: 20px; font-weight: bold; font-size: 16px; }
         </style>
       </head>
       <body>
         <div class="card">
           <div class="icon">✅</div>
-          <h1>تم الدفع بنجاح</h1>
-          <p>شكراً لاستخدامك خدمة الدفع عبر حكايات.</p>
+          <h1>تم الدفع وتفعيل الخدمة بنجاح</h1>
+          <p>شكراً لاستخدامك خدمة شبكة حكايات.</p>
           <p>رقم العملية: <strong>${transactionId}</strong></p>
-          <a href="/" class="btn">العودة للرئيسية</a>
+          <br>
+          <!-- الخروج والعودة لصفحة الشبكة الهوتسبوت بدلاً من صفحة الدفع -->
+          <a href="${NETWORK_URL}" class="btn">الذهاب لتصفح الإنترنت</a>
         </div>
       </body>
     </html>
