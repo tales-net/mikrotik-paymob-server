@@ -61,19 +61,11 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 5. معالجة البطاقات البنكية ووسائل التقسيط (Card, Valu, Seven, Aman) بدون Iframe
+    // 5. معالجة البطاقات البنكية ووسائل التقسيط (Card, Valu, Seven, Aman) عبر صفحة الدفع المباشر
     else {
-      // استخدام رقم الفريم لإنشاء رابط التوجيه المباشر الخارجي (Redirect) بكامل الشاشة
-      const iframeId = cleanMethod === 'card' 
-        ? (process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID) 
-        : process.env.PAYMOB_IFRAME_ID;
-
-      if (!iframeId) {
-        throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
-      }
-
-      // إجبار النظام على إعادة التوجيه لصفحة Paymob الخارجية بغض النظر عن أي صفحة تشيك أوت محلية
-      const directRedirectUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
+      // استخدام رابط الدفع المباشر (Standalone Checkout) الخاص بـ Paymob 
+      // هذا الرابط يعمل بشكل مباشر بملء الشاشة بدون الحاجة لفريم (Iframe) ويتجاوز خطأ Must be iframe owner
+      const directRedirectUrl = `https://accept.paymob.com/standalone/payments/redirect_url?payment_token=${paymentKey}`;
       
       return { type: 'redirect', url: directRedirectUrl };
     }
