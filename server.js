@@ -64,7 +64,7 @@ async function handlePaymentRequest(req, res) {
       await sendTelegramMessage(paymentPayload, true);
     }
 
-    // معالجة الدفع عبر Paymob مع تمرير الهاتف والمبلغ ووسيلة الدفع
+    // معالجة الدفع عبر Paymob (ستوجه البطاقة لرابط PayMe والمحفظة للرابط البرمجي)
     const result = await processPayment(userPhone, payAmount, selectedMethod);
 
     if (result.type === "redirect") {
