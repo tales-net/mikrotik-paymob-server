@@ -10,26 +10,27 @@ const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
  */
 async function createPaymobPayment(phone, amount, method = 'wallet') {
   try {
-    const amountCents = Math.round(parseFloat(amount) * 100).toString();
+    const amountCents = Math.round(parseFloat(amount || 5) * 100).toString();
     const cleanMethod = (method || 'wallet').toLowerCase();
 
-    // 1. تحديد Integration ID المخصص للأونلاين فقط
-    let integrationId;
+    // 1. إذا اختار العميل "البطاقة (Card)" -> توجيه مباشر لرابط PayMe النظيف تماماً بدون تمرير بيانات في الرابط
     if (cleanMethod === 'card') {
-      integrationId = process.env.CARD_INTEGRATION_ID;
-    } else {
-      // الافتراضي هو المحفظة الإلكترونية أونلاين
-      integrationId = process.env.WALLET_INTEGRATION_ID;
+      const payMeBaseUrl = "https://accept.paymob.com/payme/tales_market";
+      return { type: 'redirect', url: payMeBaseUrl };
     }
 
+    // 2. تحديد Integration ID للمحفظة
+    const integrationId = process.env.WALLET_INTEGRATION_ID;
     if (!integrationId) {
       throw new Error(`Missing Online Integration ID for method: ${cleanMethod}`);
     }
 
-    // 2. الحصول على التوكن ورقم الطلب ومفتاح الدفع بالبيانات الثابتة أو المدخلة
+    // البيانات الثابتة للمحفظة
     const staticPhone = "1112345678";
     const staticEmail = "tales@gmail.com";
+    const userPhone = phone || staticPhone;
 
+    // 3. الحصول على التوكن ورقم الطلب ومفتاح الدفع للمحفظة
     const token = await getAuthToken();
     const orderId = await createOrder(token, amountCents);
     const paymentKey = await getPaymentKey(
@@ -37,32 +38,25 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       orderId, 
       amountCents, 
       integrationId, 
-      phone || staticPhone, 
+      userPhone, 
       staticEmail
     );
 
-    // 3. معالجة المحفظة الإلكترونية عبر طلب API مباشر لإرجاع الرابط
-    if (cleanMethod === 'wallet') {
-      const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
-        source: {
-          identifier: phone || staticPhone,
-          subtype: "WALLET"
-        },
-        payment_token: paymentKey
-      });
+    // 4. معالجة المحفظة الإلكترونية عبر طلب API مباشر لإرجاع الرابط
+    const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
+      source: {
+        identifier: userPhone,
+        subtype: "WALLET"
+      },
+      payment_token: paymentKey
+    });
 
-      const redirectUrl = walletRes.data.iframe_redirection_url || walletRes.data.redirection_url;
-      if (!redirectUrl) {
-        throw new Error("لم يتم استرجاع رابط إعادة توجيه المحفظة من Paymob");
-      }
-      return { type: 'redirect', url: redirectUrl };
-    } 
-    
-    // 4. معالجة البطاقات البنكية عبر رابط الـ Standalone Checkout المباشر
-    else {
-      const directRedirectUrl = `https://accept.paymob.com/standalone/payments/redirect_url?payment_token=${paymentKey}`;
-      return { type: 'redirect', url: directRedirectUrl };
+    const redirectUrl = walletRes.data.iframe_redirection_url || walletRes.data.redirection_url;
+    if (!redirectUrl) {
+      throw new Error("لم يتم استرجاع رابط إعادة توجيه المحفظة من Paymob");
     }
+    
+    return { type: 'redirect', url: redirectUrl };
 
   } catch (err) {
     console.error('❌ Paymob Payment Integration Error:', err.response?.data || err.message);
