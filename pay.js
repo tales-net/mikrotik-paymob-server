@@ -1,62 +1,77 @@
 const axios = require('axios');
+const { getCheckoutPage } = require('./checkout');
 const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
 
 /**
- * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob (محافظ وبطاقات أونلاين فقط)
+ * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة
  * @param {string} phone - رقم الهاتف أو المحفظة
  * @param {string|number} amount - المبلغ بالجنيه
- * @param {string} method - وسيلة الدفع (wallet أو card)
- * @returns {Promise<{type: string, url?: string}>}
+ * @param {string} method - وسيلة الدفع (wallet, card)
+ * @returns {Promise<{type: string, url?: string, content?: string}>}
  */
 async function createPaymobPayment(phone, amount, method = 'wallet') {
   try {
-    const amountCents = Math.round(parseFloat(amount || 5) * 100).toString();
+    // 1. تحويل المبلغ إلى قروش (Cents) وتوحيد نص وسيلة الدفع
+    const amountCents = Math.round(parseFloat(amount) * 100).toString();
     const cleanMethod = (method || 'wallet').toLowerCase();
 
-    // 1. إذا اختار العميل "البطاقة (Card)" -> توجيه مباشر لرابط PayMe النظيف تماماً بدون تمرير بيانات في الرابط
-    if (cleanMethod === 'card') {
-      const payMeBaseUrl = "https://accept.paymob.com/payme/tales_market";
-      return { type: 'redirect', url: payMeBaseUrl };
+    // 2. تحديد Integration ID المناسب من متغيرات البيئة (محافظ وبطاقات فقط)
+    let integrationId;
+    switch (cleanMethod) {
+      case 'card':
+        integrationId = process.env.CARD_INTEGRATION_ID;
+        break;
+      case 'wallet':
+      default:
+        integrationId = process.env.WALLET_INTEGRATION_ID;
+        break;
     }
 
-    // 2. تحديد Integration ID للمحفظة
-    const integrationId = process.env.WALLET_INTEGRATION_ID;
     if (!integrationId) {
-      throw new Error(`Missing Online Integration ID for method: ${cleanMethod}`);
+      throw new Error(`Missing Integration ID for method: ${cleanMethod}`);
     }
 
-    // البيانات الثابتة للمحفظة
-    const staticPhone = "1112345678";
-    const staticEmail = "tales@gmail.com";
-    const userPhone = phone || staticPhone;
-
-    // 3. الحصول على التوكن ورقم الطلب ومفتاح الدفع للمحفظة
+    // 3. الحصول على توكن المصادقة، رقم الطلب، ومفتاح الدفع
     const token = await getAuthToken();
     const orderId = await createOrder(token, amountCents);
-    const paymentKey = await getPaymentKey(
-      token, 
-      orderId, 
-      amountCents, 
-      integrationId, 
-      userPhone, 
-      staticEmail
-    );
+    const paymentKey = await getPaymentKey(token, orderId, amountCents, integrationId, phone || '01000000000');
 
-    // 4. معالجة المحفظة الإلكترونية عبر طلب API مباشر لإرجاع الرابط
-    const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
-      source: {
-        identifier: userPhone,
-        subtype: "WALLET"
-      },
-      payment_token: paymentKey
-    });
+    // 4. معالجة وسيلة المحفظة الإلكترونية (Mobile Wallet)
+    if (cleanMethod === 'wallet') {
+      const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
+        source: {
+          identifier: phone,
+          subtype: "WALLET"
+        },
+        payment_token: paymentKey
+      });
 
-    const redirectUrl = walletRes.data.iframe_redirection_url || walletRes.data.redirection_url;
-    if (!redirectUrl) {
-      throw new Error("لم يتم استرجاع رابط إعادة توجيه المحفظة من Paymob");
-    }
+      const redirectUrl = walletRes.data.iframe_redirection_url || walletRes.data.redirection_url;
+      if (!redirectUrl) {
+        throw new Error("لم يتم استرجاع رابط إعادة توجيه المحفظة من Paymob");
+      }
+      return { type: 'redirect', url: redirectUrl };
+    } 
     
-    return { type: 'redirect', url: redirectUrl };
+    // 5. معالجة البطاقات البنكية (Card)
+    else {
+      // السماح بتخصيص Iframe ID خاص بالبطاقة أو استخدام الـ ID العام كبديل
+      const iframeId = cleanMethod === 'card' 
+        ? (process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID) 
+        : process.env.PAYMOB_IFRAME_ID;
+
+      if (!iframeId) {
+        throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
+      }
+
+      if (typeof getCheckoutPage === 'function') {
+        const htmlPage = getCheckoutPage(paymentKey, iframeId);
+        return { type: 'html', content: htmlPage };
+      }
+      
+      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
+      return { type: 'redirect', url: iframeUrl };
+    }
 
   } catch (err) {
     console.error('❌ Paymob Payment Integration Error:', err.response?.data || err.message);
