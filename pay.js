@@ -1,13 +1,12 @@
 const axios = require('axios');
-const { getCheckoutPage } = require('./checkout');
 const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
 
 /**
- * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة
+ * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة بدون فريم (Iframe)
  * @param {string} phone - رقم الهاتف أو المحفظة
  * @param {string|number} amount - المبلغ بالجنيه
  * @param {string} method - وسيلة الدفع (wallet, card, valu, seven, aman)
- * @returns {Promise<{type: string, url?: string, content?: string}>}
+ * @returns {Promise<{type: string, url?: string}>}
  */
 async function createPaymobPayment(phone, amount, method = 'wallet') {
   try {
@@ -62,9 +61,9 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 5. معالجة البطاقات البنكية ووسائل التقسيط (Card, Valu, Seven, Aman)
+    // 5. معالجة البطاقات البنكية ووسائل التقسيط (Card, Valu, Seven, Aman) بدون Iframe
     else {
-      // السماح بتخصيص Iframe ID خاص بالبطاقة أو استخدام الـ ID العام كبديل
+      // استخدام رقم الفريم لإنشاء رابط التوجيه المباشر الخارجي (Redirect) بكامل الشاشة
       const iframeId = cleanMethod === 'card' 
         ? (process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID) 
         : process.env.PAYMOB_IFRAME_ID;
@@ -73,13 +72,10 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
         throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
       }
 
-      if (typeof getCheckoutPage === 'function') {
-        const htmlPage = getCheckoutPage(paymentKey, iframeId);
-        return { type: 'html', content: htmlPage };
-      }
+      // إجبار النظام على إعادة التوجيه لصفحة Paymob الخارجية بغض النظر عن أي صفحة تشيك أوت محلية
+      const directRedirectUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
       
-      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
-      return { type: 'redirect', url: iframeUrl };
+      return { type: 'redirect', url: directRedirectUrl };
     }
 
   } catch (err) {
