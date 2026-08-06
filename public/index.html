@@ -136,19 +136,6 @@
             display: none;
         }
 
-        /* خانة التقسيط: مخفية بحالة افتراضية وتظهر عند كتابة 16 رقم */
-        .checkInstallmentTextDiv {
-            background-color: #eef4ff;
-            border: 1px dashed #01338D;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 13px;
-            color: #01338D;
-            display: none;
-        }
-
         .card-footer-box {
             text-align: center;
             margin-top: 20px;
@@ -260,15 +247,12 @@
                     <input type="hidden" id="card_expiry_mm" name="card_expiry_mm">
                     <input type="hidden" id="card_expiry_yy" name="card_expiry_yy">
 
-                    <!-- 1. اختيار وسيلة الدفع -->
+                    <!-- 1. اختيار وسيلة الدفع (محفظة وبطاقة فقط) -->
                     <div class="input-group-custom">
                         <label>اختر وسيلة الدفع:</label>
                         <select name="payment_method" id="payment_method" required>
                             <option value="wallet" selected>محفظة إلكترونية (Mobile Wallet)</option>
                             <option value="card">بطاقة بنكية (Visa / Mastercard)</option>
-                            <option value="valu">فاليو / تقسيط (Valu)</option>
-                            <option value="seven">برنامج سفن (SEVEN)</option>
-                            <option value="aman">أمان / مصاري (Aman)</option>
                         </select>
                     </div>
 
@@ -298,7 +282,7 @@
                                    style="padding-right: 85px;">
                             <div class="input-icon-right" id="wallet_icons">
                                 <span class="meeza-badge">ميزة Meeza</span>
-                                <i class="fa fa-money cash-icon" title="دفع نقدي / محفظة"></i>
+                                <i class="fa fa-money cash-icon" title="محفظة"></i>
                             </div>
                         </div>
                         <div class="error-message" id="error_phone">يجب كتابة رقم هاتف صحيح 11 رقماً ويبدأ بـ 01.</div>
@@ -324,11 +308,6 @@
                                 </div>
                             </div>
                             <div class="error-message" id="error_card_number">يجب كتابة 16 رقماً بالإنجليزية بدون حروف.</div>
-                        </div>
-
-                        <!-- رسالة مؤهلة لخطط التقسيط البنكي -->
-                        <div class="checkInstallmentTextDiv" id="installment_notice">
-                            <span>بطاقتك قد تكون مؤهلة لخطط التقسيط البنكي</span>
                         </div>
 
                         <!-- اسم صاحب الكارت -->
@@ -387,60 +366,46 @@
                     </div>
                 </form>
             </section>
-        </div>
-    </div>
 
-    <!-- التذييل مع شعارات البنوك المحددة من قبلك -->
+
+    <!-- التذييل مع شعارات البنوك -->
     <footer>
         <div class="container bank-logos-container">
-            <div class="bank-logos-title">معتمد ومؤمن عبر البنوك المصرية والبنك المركزي</div>
+            <div class="bank-logos-title"><i class="fa fa-shield" aria-hidden="true"></i>معتمد ومؤمن عبر البنوك المصرية والبنك المركزي</div>
             <div class="bank-logos-grid">
-                <!-- البنك المركزي المصري -->
-                <div class="bank-logo-card" title="البنك المركزي المصري">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/79/Central_Bank_of_Egypt_Logo.png" alt="البنك المركزي المصري">
-                </div>
-                <!-- البنك الأهلي المصري -->
                 <div class="bank-logo-card" title="البنك الأهلي المصري">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyQK8qxPP2zQ5VGsuc67tWs47ChVJU81n3c4cibJYAS3fOZRurbhovue2l&s=10" alt="البنك الأهلي المصري">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fc/NBE_logo.png" alt="البنك الأهلي المصري">
                 </div>
-                <!-- بنك المشرق -->
-                <div class="bank-logo-card" title="بنك المشرق">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS02oZ-v6oDx2Qwwdf5Xh5FSg1zbtXpoEjKj4mjqCT6WmAr7lLyfmDk2N8g&s=10" alt="بنك المشرق">
+                <div class="bank-logo-card" title="البنك المركزي المصري">
+                    <img src="https://cbpn.currencyresearch.com/wp-content/uploads/2025/09/CentralBankofEgypt.png.webp" alt="البنك المركزي المصري">
                 </div>
-                <!-- البنك التجاري الدولي CIB -->
-                <div class="bank-logo-card" title="البنك التجاري الدولي CIB">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV4BeLV9_r3vKy8zPXwv7KmUK4wBLwG1gbiO8wvhRiKw&s=10" alt="CIB Bank">
+                <div class="bank-logo-card" title="البنك الالأسكندرية CIB">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Alex_Bank_Logo.svg" alt="بنك الأسكندرية">
                 </div>
             </div>
         </div>
     </footer>
 
     <script>
-        // --- 1. التحكم في إظهار وإخفاء الحقول ديناميكياً ---
         const paymentMethodSelect = document.getElementById('payment_method');
         const cardSection = document.getElementById('card_section');
         const phoneGroup = document.getElementById('phone_group');
-        const installmentNotice = document.getElementById('installment_notice');
 
         function toggleFields() {
             const selectedMethod = paymentMethodSelect.value;
-
             if (selectedMethod === 'card') {
                 cardSection.style.display = 'block';
                 phoneGroup.style.display = 'none';
             } else {
                 cardSection.style.display = 'none';
                 phoneGroup.style.display = 'block';
-                installmentNotice.style.display = 'none';
             }
         }
 
         paymentMethodSelect.addEventListener('change', toggleFields);
 
-        // --- 2. قراءة المبلغ التلقائي من الرابط إن وجد ---
         window.addEventListener('DOMContentLoaded', () => {
             toggleFields();
-
             const urlParams = new URLSearchParams(window.location.search);
             const amountParam = urlParams.get('amount');
             if (amountParam) {
@@ -448,14 +413,12 @@
             }
         });
 
-        // --- 3. تحويل الأرقام والتحقق من صحة المدخلات ---
         function convertArabicDigitsToEnglish(str) {
             return str.replace(/[٠-٩]/g, function (d) {
                 return d.charCodeAt(0) - 1632;
             });
         }
 
-        // المبلغ
         const amountInput = document.getElementById('pay_amount');
         amountInput.addEventListener('input', function (e) {
             let val = convertArabicDigitsToEnglish(e.target.value).replace(/[^\d.]/g, '');
@@ -477,7 +440,6 @@
             }
         }
 
-        // رقم الهاتف
         const phoneInput = document.getElementById('user_phone');
         phoneInput.addEventListener('input', function (e) {
             let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
@@ -503,21 +465,12 @@
             }
         }
 
-        // رقم البطاقة (إظهار التقسيط عند اكتمال 16 رقماً)
         const cardNumberInput = document.getElementById('card_number');
         cardNumberInput.addEventListener('input', function (e) {
             let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
             if (val.length > 16) val = val.substring(0, 16);
-
             let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
             e.target.value = formatted;
-
-            if (val.length === 16) {
-                installmentNotice.style.display = 'block';
-            } else {
-                installmentNotice.style.display = 'none';
-            }
-
             validateCardNumber();
         });
 
@@ -536,7 +489,6 @@
             }
         }
 
-        // تاريخ الانتهاء (MM/YY)
         const mmyyInput = document.getElementById('mmyy');
         mmyyInput.addEventListener('input', function (e) {
             let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
@@ -561,7 +513,6 @@
             } else {
                 mmyyInput.classList.remove('is-invalid');
                 errorElement.style.display = 'none';
-
                 const parts = val.split('/');
                 document.getElementById('card_expiry_mm').value = parts[0];
                 document.getElementById('card_expiry_yy').value = parts[1];
@@ -569,7 +520,6 @@
             }
         }
 
-        // رمز CVC (3 أرقام)
         const cvcInput = document.getElementById('card_cvc');
         cvcInput.addEventListener('input', function (e) {
             let val = convertArabicDigitsToEnglish(e.target.value).replace(/\D/g, '');
@@ -593,7 +543,6 @@
             }
         }
 
-        // اسم صاحب الكارت
         const nameInput = document.getElementById('card_name');
         nameInput.addEventListener('input', function (e) {
             e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
@@ -615,7 +564,6 @@
             }
         }
 
-        // --- 4. إرسال النموذج ---
         document.getElementById("paymob_checkout").addEventListener("submit", function (e) {
             const isAmountValid = validateAmount();
             let isPhoneValid = true;
