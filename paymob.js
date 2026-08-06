@@ -66,8 +66,10 @@ async function getPaymentKey(authToken, orderId, amountCents, integrationId, pho
     });
     return response.data.token;
   } catch (err) {
-    console.error("❌ Paymob Payment Key Error:", err.response?.data || err.message);
-    throw new Error("فشل توليد مفتاح الدفع من Paymob");
+    // طباعة تفاصيل الخطأ بالكامل لرؤية السبب الدقيق المرفوض من Paymob في Logs
+    console.error("❌ Paymob Payment Key Error Details:", JSON.stringify(err.response?.data, null, 2));
+    const errorMsg = err.response?.data?.detail || err.response?.data?.message || err.message;
+    throw new Error(`فشل توليد مفتاح الدفع من Paymob: ${errorMsg}`);
   }
 }
 
