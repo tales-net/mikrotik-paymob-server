@@ -1,54 +1,61 @@
-// checkout.js
-function getCheckoutPage(paymentKey, iframeId) {
+/**
+ * إنشاء صفحة HTML تضم الـ Iframe الخاص بـ Paymob مع تصميم متناسق
+ * @param {string} paymentToken - مفتاح الدفع المستلم من Paymob
+ * @param {string} iframeId - رقم الـ Iframe الخاص بالبطاقات
+ * @returns {string} - كود الصفحة HTML الكامل
+ */
+function getCheckoutPage(paymentToken, iframeId) {
+  const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentToken}`;
+
   return `
     <!DOCTYPE html>
-    <html lang="ar">
+    <html lang="ar" dir="rtl">
     <head>
-      <meta charset="UTF-8">
-      <title>💳 صفحة الدفع</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <style>
-        body {
-          font-family: "Cairo", sans-serif;
-          background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
-          margin: 0;
-          padding: 0;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 100vh;
-        }
-        .container {
-          width: 100%;
-          max-width: 420px;
-          background: #fff;
-          padding: 30px;
-          border-radius: 15px;
-          box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-          animation: fadeIn 0.8s ease-in-out;
-        }
-        h2 {
-          text-align: center;
-          margin-bottom: 25px;
-          color: #2c3e50;
-        }
-        iframe {
-          width: 100%;
-          height: 600px;
-          border: none;
-          border-radius: 10px;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      </style>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>إتمام الدفع - حكايات</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background-color: #f4f7f6;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }
+            .iframe-card {
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                width: 100%;
+                max-width: 500px;
+                overflow: hidden;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+            iframe {
+                width: 100%;
+                height: 650px;
+                border: none;
+                border-radius: 8px;
+            }
+            .header {
+                text-align: center;
+                padding: 10px 0;
+                color: #01338D;
+                font-size: 18px;
+                font-weight: bold;
+            }
+        </style>
     </head>
     <body>
-      <div class="container">
-        <h2>💳 إتمام الدفع</h2>
-        <iframe src="https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}" allowpaymentrequest></iframe>
-      </div>
+        <div class="iframe-card">
+            <div class="header">بوابة الدفع الآمنة</div>
+            <iframe src="${iframeUrl}" allowfullscreen></iframe>
+        </div>
     </body>
     </html>
   `;
