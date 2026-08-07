@@ -3,7 +3,7 @@ const { getCheckoutPage } = require('./checkout');
 const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
 
 /**
- * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة (محافظ وبطاقات فقط)
+ * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة
  * @param {string} phone - رقم الهاتف أو المحفظة
  * @param {string|number} amount - المبلغ بالجنيه
  * @param {string} method - وسيلة الدفع (wallet, card)
@@ -15,11 +15,11 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
     const amountCents = Math.round(parseFloat(amount) * 100).toString();
     const cleanMethod = (method || 'wallet').toLowerCase();
 
-    // 2. تحديد Integration ID المناسب من متغيرات البيئة أو القيم الافتراضية
+    // 2. تحديد Integration ID المناسب من متغيرات البيئة (محافظ وبطاقات فقط)
     let integrationId;
     switch (cleanMethod) {
       case 'card':
-        integrationId = process.env.CARD_INTEGRATION_ID || "5653701";
+        integrationId = process.env.CARD_INTEGRATION_ID;
         break;
       case 'wallet':
       default:
@@ -55,44 +55,22 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
     
     // 5. معالجة البطاقات البنكية (Card)
     else {
-      const iframeId = process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID;
+      // السماح بتخصيص Iframe ID خاص بالبطاقة أو استخدام الـ ID العام كبديل
+      const iframeId = cleanMethod === 'card' 
+        ? (process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID) 
+        : process.env.PAYMOB_IFRAME_ID;
 
       if (!iframeId) {
         throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
       }
 
-      // إذا كانت دالة getCheckoutPage متاحة في دالة الجلب المخصصة
       if (typeof getCheckoutPage === 'function') {
         const htmlPage = getCheckoutPage(paymentKey, iframeId);
         return { type: 'html', content: htmlPage };
       }
       
-      const cardUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
-
-      // إرجاع صفحة HTML متجاوبة بالكامل لملء الشاشة مع كافة صلاحيات التفاعل
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <title>الدفع بالفيزا - حكايات</title>
-          <style>
-            html, body { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; background-color: #ffffff; }
-            iframe { width: 100%; height: 100%; border: 0; display: block; }
-          </style>
-        </head>
-        <body>
-          <iframe 
-            src="${cardUrl}" 
-            allow="payment *; credit-card-debugging *" 
-            sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups">
-          </iframe>
-        </body>
-        </html>
-      `;
-
-      return { type: 'html', content: htmlContent };
+      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
+      return { type: 'redirect', url: iframeUrl };
     }
 
   } catch (err) {
