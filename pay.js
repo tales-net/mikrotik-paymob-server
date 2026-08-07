@@ -1,42 +1,35 @@
 const axios = require('axios');
-const { getCheckoutPage } = require('./checkout');
 const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
 
-/**
- * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob بناءً على نوع الوسيلة
- * @param {string} phone - رقم الهاتف أو المحفظة
- * @param {string|number} amount - المبلغ بالجنيه
- * @param {string} method - وسيلة الدفع (wallet, card)
- * @returns {Promise<{type: string, url?: string, content?: string}>}
- */
 async function createPaymobPayment(phone, amount, method = 'wallet') {
   try {
-    // 1. تحويل المبلغ إلى قروش (Cents) وتوحيد نص وسيلة الدفع
     const amountCents = Math.round(parseFloat(amount) * 100).toString();
     const cleanMethod = (method || 'wallet').toLowerCase();
 
-    // 2. تحديد Integration ID المناسب من متغيرات البيئة (محافظ وبطاقات فقط)
+    // 1. تحديد Integration ID
     let integrationId;
-    switch (cleanMethod) {
-      case 'card':
-        integrationId = process.env.CARD_INTEGRATION_ID;
-        break;
-      case 'wallet':
-      default:
-        integrationId = process.env.WALLET_INTEGRATION_ID;
-        break;
+    if (cleanMethod === 'card') {
+      integrationId = process.env.CARD_INTEGRATION_ID || "5653701";
+    } else {
+      integrationId = process.env.WALLET_INTEGRATION_ID;
     }
 
     if (!integrationId) {
       throw new Error(`Missing Integration ID for method: ${cleanMethod}`);
     }
 
-    // 3. الحصول على توكن المصادقة، رقم الطلب، ومفتاح الدفع
+    // 2. إنشاء الطلب وجلب المفتاح
     const token = await getAuthToken();
     const orderId = await createOrder(token, amountCents);
-    const paymentKey = await getPaymentKey(token, orderId, amountCents, integrationId, phone || '01000000000');
+    const paymentKey = await getPaymentKey(
+      token, 
+      orderId, 
+      amountCents, 
+      integrationId, 
+      phone || '01000000000'
+    );
 
-    // 4. معالجة وسيلة المحفظة الإلكترونية (Mobile Wallet)
+    // 3. معالجة المحفظة الإلكترونية (API Direct)
     if (cleanMethod === 'wallet') {
       const walletRes = await axios.post('https://accept.paymob.com/api/acceptance/payments/pay', {
         source: {
@@ -53,24 +46,10 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 5. معالجة البطاقات البنكية (Card)
+    // 4. معالجة البطاقات البنكية (توجيه مباشر للفيزا بدون Iframe)
     else {
-      // السماح بتخصيص Iframe ID خاص بالبطاقة أو استخدام الـ ID العام كبديل
-      const iframeId = cleanMethod === 'card' 
-        ? (process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID) 
-        : process.env.PAYMOB_IFRAME_ID;
-
-      if (!iframeId) {
-        throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
-      }
-
-      if (typeof getCheckoutPage === 'function') {
-        const htmlPage = getCheckoutPage(paymentKey, iframeId);
-        return { type: 'html', content: htmlPage };
-      }
-      
-      const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
-      return { type: 'redirect', url: iframeUrl };
+      const directCardUrl = `https://accept.paymob.com/standalone/payments/redirect_url?payment_token=${paymentKey}`;
+      return { type: 'redirect', url: directCardUrl };
     }
 
   } catch (err) {
