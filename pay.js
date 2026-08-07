@@ -2,7 +2,7 @@ const axios = require('axios');
 const { getAuthToken, createOrder, getPaymentKey } = require('./paymob');
 
 /**
- * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob (توجيه مباشر للفيزا والمحفظة)
+ * إنشاء المعاملة وتجهيز رابط الدفع الخاص بـ Paymob (توجيه مباشر وكامل)
  */
 async function createPaymobPayment(phone, amount, method = 'wallet') {
   try {
@@ -49,10 +49,35 @@ async function createPaymobPayment(phone, amount, method = 'wallet') {
       return { type: 'redirect', url: redirectUrl };
     } 
     
-    // 4. معالجة البطاقات البنكية (Card) - توجيه مباشر لصفحة الدفع الرسمية
+    // 4. معالجة البطاقات البنكية (Card) - العرض بملء الشاشة بمرونة كاملة
     else {
-      const directCardUrl = `https://accept.paymob.com/api/acceptance/payments/pay_token?payment_token=${paymentKey}`;
-      return { type: 'redirect', url: directCardUrl };
+      const iframeId = process.env.CARD_IFRAME_ID || process.env.PAYMOB_IFRAME_ID;
+      if (!iframeId) {
+        throw new Error("Missing PAYMOB_IFRAME_ID in environment variables");
+      }
+
+      const cardUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
+      
+      // إرجاع صفحة HTML تفاعلية تعرض واجهة الفيزا بملء الشاشة بدون تقييد
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>الدفع بالفيزا - حكايات</title>
+          <style>
+            html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8f9fa; }
+            iframe { width: 100%; height: 100%; border: none; }
+          </style>
+        </head>
+        <body>
+          <iframe src="${cardUrl}" allow="payment"></iframe>
+        </body>
+        </html>
+      `;
+
+      return { type: 'html', content: htmlContent };
     }
 
   } catch (err) {
